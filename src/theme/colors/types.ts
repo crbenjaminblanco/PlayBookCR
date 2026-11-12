@@ -1,0 +1,24 @@
+export type ColorTokens = {
+  bg: string;
+  surface: string;
+  surfaceElevated: string;
+  text: string;
+  textMuted: string;
+  accent: string;
+  accentFill: string;
+  accentText: string;
+  border: string;
+  borderStrong: string;
+  success: string;
+  successText: string;
+  warning: string;
+  warningText: string;
+  danger: string;
+  dangerText: string;
+  info: string;
+  infoText: string;
+  mapLow: string;
+  mapMid: string;
+  mapHigh: string;
+  star: string;
+};
