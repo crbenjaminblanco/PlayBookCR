@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { CostaRicaMap } from '@/src/components/CostaRicaMap';
@@ -27,7 +27,8 @@ export function CostaRicaBoard() {
   const { status, retry } = useDemoLoad();
   const [selectedId, setSelectedId] = useState<ProvinceId | null>(null);
   const [openId, setOpenId] = useState<ProvinceId | null>(null);
-  const [mapWidth, setMapWidth] = useState(320);
+  const [mapWidth, setMapWidth] = useState(420);
+  const [mapHeight, setMapHeight] = useState(396);
   const [teamFilter, setTeamFilter] = useState<string | null>(null);
   const [showAllTeams, setShowAllTeams] = useState(false);
   const provinceRows = useMemo(
@@ -46,10 +47,40 @@ export function CostaRicaBoard() {
       .sort((left, right) => right.fans - left.fans || left.team.city.localeCompare(right.team.city));
   }, []);
   const teamPreview = 8;
-  const visibleTeams = showAllTeams ? teamRows : teamRows.slice(0, teamPreview);
+  const stackedTeams = !wide && !showAllTeams ? teamRows.slice(0, teamPreview) : teamRows;
   const teamMax = teamRows[0]?.fans || 1;
   const activeFilter = teamById(teamFilter);
   const barColor = activeFilter ? readableTeamColor(activeFilter.color) : colors.accent;
+  const teamList = activeFilter
+    ? provinceRows.map((row) => (
+        <View key={row.id} style={{ gap: space.xs }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }}>
+            <AppText variant="small" style={{ flex: 1, fontFamily: fontFamily.medium }}>
+              {row.id}
+            </AppText>
+            <FanCount fans={row.fans} />
+          </View>
+          <View style={{ height: 5, borderRadius: radius.pill, backgroundColor: colors.surfaceElevated }}>
+            <View style={{ width: `${(row.fans / provinceMax) * 100}%`, height: 5, borderRadius: radius.pill, backgroundColor: barColor }} />
+          </View>
+        </View>
+      ))
+    : stackedTeams.map((row) => (
+        <View key={row.team.id} style={{ gap: space.xs }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }}>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+              <Helmet team={row.team} size={22} />
+              <AppText variant="small" style={{ flex: 1, fontFamily: fontFamily.medium }}>
+                {teamLabel(row.team)}
+              </AppText>
+            </View>
+            <FanCount fans={row.fans} />
+          </View>
+          <View style={{ height: 5, borderRadius: radius.pill, backgroundColor: colors.surfaceElevated }}>
+            <View style={{ width: `${(row.fans / teamMax) * 100}%`, height: 5, borderRadius: radius.pill, backgroundColor: readableTeamColor(row.team.color) }} />
+          </View>
+        </View>
+      ));
 
   return (
     <View style={{ width: '100%', maxWidth: 1120, alignSelf: 'center', paddingHorizontal: regular ? 32 : 16, gap: space.lg, paddingTop: space.xl, zIndex: openId ? 30 : 0 }}>
@@ -84,8 +115,13 @@ export function CostaRicaBoard() {
           {openId ? (
             <Pressable accessibilityLabel={t('home.close')} onPress={() => setOpenId(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20 }} />
           ) : null}
-          <View style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? space.xxxl : space.lg, alignItems: 'flex-start', justifyContent: 'center', width: '100%' }}>
-            <View style={{ width: wide ? 420 : '100%', maxWidth: wide ? 420 : 320, alignSelf: wide ? 'flex-start' : 'center' }} onLayout={(event) => setMapWidth(event.nativeEvent.layout.width)}>
+          <View style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? space.xxxl : space.lg, alignItems: wide ? 'stretch' : 'flex-start', justifyContent: 'center', width: '100%' }}>
+            <View
+              style={{ width: wide ? 420 : '100%', maxWidth: wide ? 420 : 320, alignSelf: wide ? 'flex-start' : 'center' }}
+              onLayout={(event) => {
+                setMapWidth(event.nativeEvent.layout.width);
+                setMapHeight(event.nativeEvent.layout.height);
+              }}>
               <CostaRicaMap
                 provinces={provinces}
                 selectedId={selectedId}
@@ -98,51 +134,28 @@ export function CostaRicaBoard() {
                 teamId={teamFilter}
               />
             </View>
-            <View style={{ width: wide ? 440 : '100%', maxWidth: wide ? 440 : 360, alignSelf: wide ? 'flex-end' : 'center' }}>
-              <Card style={{ padding: space.md, gap: space.sm }}>
+            <View style={{ width: wide ? 420 : '100%', maxWidth: wide ? 420 : 360, height: wide ? mapHeight : undefined, alignSelf: wide ? 'flex-end' : 'center' }}>
+              <Card style={{ flex: 1, padding: space.md, gap: space.sm, height: wide ? '100%' : undefined, overflow: wide ? 'hidden' : 'visible' }}>
                 <AppText variant="small" style={{ fontFamily: fontFamily.bold, fontSize: 16, lineHeight: 20 }}>
                   {t('home.fansIn', { place: t('home.country') })}
                 </AppText>
                 <FanCount fans={provinceTotal} size={18} />
-                <View style={{ gap: regular ? space.xl : space.sm }}>
-                  {activeFilter
-                    ? provinceRows.map((row) => (
-                        <View key={row.id} style={{ gap: space.xs }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }}>
-                            <AppText variant="small" style={{ flex: 1, fontFamily: fontFamily.medium }}>
-                              {row.id}
-                            </AppText>
-                            <FanCount fans={row.fans} />
-                          </View>
-                          <View style={{ height: 5, borderRadius: radius.pill, backgroundColor: colors.surfaceElevated }}>
-                            <View style={{ width: `${(row.fans / provinceMax) * 100}%`, height: 5, borderRadius: radius.pill, backgroundColor: barColor }} />
-                          </View>
-                        </View>
-                      ))
-                    : visibleTeams.map((row) => (
-                        <View key={row.team.id} style={{ gap: space.xs }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }}>
-                            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-                              <Helmet team={row.team} size={22} />
-                              <AppText variant="small" style={{ flex: 1, fontFamily: fontFamily.medium }}>
-                                {teamLabel(row.team)}
-                              </AppText>
-                            </View>
-                            <FanCount fans={row.fans} />
-                          </View>
-                          <View style={{ height: 5, borderRadius: radius.pill, backgroundColor: colors.surfaceElevated }}>
-                            <View style={{ width: `${(row.fans / teamMax) * 100}%`, height: 5, borderRadius: radius.pill, backgroundColor: readableTeamColor(row.team.color) }} />
-                          </View>
-                        </View>
-                      ))}
-                  {!activeFilter && teamRows.length > teamPreview ? (
-                    <Pressable accessibilityRole="button" onPress={() => setShowAllTeams((current) => !current)} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
-                      <AppText variant="small" tone="accent" style={{ fontFamily: fontFamily.semibold }}>
-                        {showAllTeams ? t('home.showLess') : t('home.showMore')}
-                      </AppText>
-                    </Pressable>
-                  ) : null}
-                </View>
+                {wide ? (
+                  <ScrollView style={{ flex: 1, minHeight: 0 }} contentContainerStyle={{ gap: space.sm }}>
+                    {teamList}
+                  </ScrollView>
+                ) : (
+                  <View style={{ gap: space.sm }}>
+                    {teamList}
+                    {!activeFilter && teamRows.length > teamPreview ? (
+                      <Pressable accessibilityRole="button" onPress={() => setShowAllTeams((current) => !current)} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
+                        <AppText variant="small" tone="accent" style={{ fontFamily: fontFamily.semibold }}>
+                          {showAllTeams ? t('home.showLess') : t('home.showMore')}
+                        </AppText>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                )}
               </Card>
             </View>
           </View>
