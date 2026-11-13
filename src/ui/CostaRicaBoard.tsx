@@ -61,13 +61,14 @@ export function CostaRicaBoard() {
       {status === 'ready' && provinces.length > 0 ? (
         <View style={{ position: 'relative', gap: space.md }}>
           {openId ? null : (
-            <View style={{ gap: space.sm, maxWidth: 360, width: '100%', alignSelf: 'center', zIndex: 36 }}>
+            <View style={{ gap: space.sm, maxWidth: regular ? 560 : 360, width: '100%', alignSelf: 'center', zIndex: 36 }}>
               <AppText variant="small" tone="muted" style={{ fontFamily: fontFamily.semibold, textAlign: 'center' }}>
                 {t('home.filter')}
               </AppText>
               <Select
                 label={t('home.filter')}
                 value={teamFilter ?? ''}
+                large={regular}
                 options={[{ id: '', label: t('team.all') }, ...teams.map((team) => ({ id: team.id, label: `${team.city} ${team.name}` }))]}
                 onChange={(id) => setTeamFilter(id || null)}
               />
@@ -76,8 +77,8 @@ export function CostaRicaBoard() {
           {openId ? (
             <Pressable accessibilityLabel={t('home.close')} onPress={() => setOpenId(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20 }} />
           ) : null}
-          <View style={{ flexDirection: wide ? 'row' : 'column', gap: space.md, alignItems: 'flex-start', alignSelf: 'center', width: '100%', maxWidth: 760 }}>
-            <View style={{ width: '100%', minWidth: 0, maxWidth: wide ? 280 : 320, alignSelf: wide ? 'flex-start' : 'center' }} onLayout={(event) => setMapWidth(event.nativeEvent.layout.width)}>
+          <View style={{ flexDirection: wide ? 'row' : 'column', gap: space.md, alignItems: 'flex-start', alignSelf: 'center', width: '100%', maxWidth: wide ? 1000 : undefined }}>
+            <View style={{ width: '100%', minWidth: 0, maxWidth: regular ? 480 : 320, alignSelf: wide ? 'flex-start' : 'center' }} onLayout={(event) => setMapWidth(event.nativeEvent.layout.width)}>
               <CostaRicaMap
                 provinces={provinces}
                 selectedId={selectedId}

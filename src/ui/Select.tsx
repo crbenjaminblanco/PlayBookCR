@@ -11,11 +11,13 @@ export function Select({
   value,
   options,
   onChange,
+  large = false,
 }: {
   label: string;
   value: string;
   options: Option[];
   onChange: (id: string) => void;
+  large?: boolean;
 }) {
   const { colors } = useAppTheme();
   const [open, setOpen] = useState(false);
@@ -33,8 +35,8 @@ export function Select({
           icon={open ? 'chevron-up' : 'chevron-down'}
           textColor={colors.text}
           style={{ width: '100%', borderRadius: 12, borderColor: colors.borderStrong, backgroundColor: colors.surface }}
-          contentStyle={{ flexDirection: 'row-reverse', justifyContent: 'space-between', minHeight: 48 }}
-          labelStyle={{ fontFamily: fontFamily.regular, fontSize: 16 }}>
+          contentStyle={{ flexDirection: 'row-reverse', justifyContent: 'space-between', minHeight: large ? 56 : 48 }}
+          labelStyle={{ fontFamily: fontFamily.regular, fontSize: large ? 18 : 16 }}>
           {current}
         </Button>
       }>
