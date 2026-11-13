@@ -159,18 +159,24 @@ export default function CommunityScreen() {
       </ScrollView>
 
       {open ? null : (
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+          left: 0,
+          right: 0,
+          bottom: insets.bottom + space.md,
+          zIndex: 40,
+          alignItems: 'center',
+          paddingHorizontal: space.lg,
+        }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('community.live')}
         onPress={() => setOpen(true)}
         style={{
-          position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-          left: 16,
-          right: 16,
-          bottom: insets.bottom + 12,
-          zIndex: 40,
+          width: '100%',
           maxWidth: 720,
-          alignSelf: 'center',
           flexDirection: 'row',
           alignItems: 'center',
           gap: space.sm,
@@ -191,6 +197,7 @@ export default function CommunityScreen() {
           </AppText>
         </View>
       </Pressable>
+      </View>
       )}
 
       {open ? (
@@ -210,12 +217,17 @@ export default function CommunityScreen() {
       ) : null}
       {open ? (
         <View
+          pointerEvents="box-none"
           style={{
             position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-            bottom: insets.bottom + 84,
+            left: 0,
+            right: 0,
+            bottom: insets.bottom + space.xxl,
             zIndex: 80,
-            ...(wide ? { right: 16, width: 440 } : { left: 16, right: 16 }),
+            alignItems: 'center',
+            paddingHorizontal: space.lg,
           }}>
+          <View style={{ width: '100%', maxWidth: 440 }}>
           <Card>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flex: 1 }}>
@@ -325,6 +337,7 @@ export default function CommunityScreen() {
               </Pressable>
             </View>
           </Card>
+          </View>
         </View>
       ) : null}
     </View>

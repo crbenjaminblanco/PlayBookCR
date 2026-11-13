@@ -59,16 +59,15 @@ export function CostaRicaBoard() {
       {status === 'loading' ? <StateMessage variant="loading" title={t('common.loading')} /> : null}
       {status === 'error' ? <StateMessage variant="error" title={t('common.error')} actionLabel={t('common.retry')} onAction={retry} /> : null}
       {status === 'ready' && provinces.length > 0 ? (
-        <View style={{ position: 'relative', gap: space.md }}>
+        <View style={{ position: 'relative', gap: space.xxl }}>
           {openId ? null : (
-            <View style={{ gap: space.sm, maxWidth: regular ? 560 : 360, width: '100%', alignSelf: 'center', zIndex: 36 }}>
+            <View style={{ gap: space.sm, maxWidth: 360, width: '100%', alignSelf: 'center', zIndex: 36 }}>
               <AppText variant="small" tone="muted" style={{ fontFamily: fontFamily.semibold, textAlign: 'center' }}>
                 {t('home.filter')}
               </AppText>
               <Select
                 label={t('home.filter')}
                 value={teamFilter ?? ''}
-                large={regular}
                 options={[{ id: '', label: t('team.all') }, ...teams.map((team) => ({ id: team.id, label: `${team.city} ${team.name}` }))]}
                 onChange={(id) => setTeamFilter(id || null)}
               />
@@ -77,8 +76,8 @@ export function CostaRicaBoard() {
           {openId ? (
             <Pressable accessibilityLabel={t('home.close')} onPress={() => setOpenId(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20 }} />
           ) : null}
-          <View style={{ flexDirection: wide ? 'row' : 'column', gap: space.md, alignItems: 'flex-start', alignSelf: 'center', width: '100%', maxWidth: wide ? 1000 : undefined }}>
-            <View style={{ width: '100%', minWidth: 0, maxWidth: regular ? 480 : 320, alignSelf: wide ? 'flex-start' : 'center' }} onLayout={(event) => setMapWidth(event.nativeEvent.layout.width)}>
+          <View style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? space.xxxl : space.lg, alignItems: 'flex-start', justifyContent: 'center', width: '100%' }}>
+            <View style={{ width: wide ? 420 : '100%', maxWidth: wide ? 420 : 320, alignSelf: wide ? 'flex-start' : 'center' }} onLayout={(event) => setMapWidth(event.nativeEvent.layout.width)}>
               <CostaRicaMap
                 provinces={provinces}
                 selectedId={selectedId}
@@ -91,16 +90,16 @@ export function CostaRicaBoard() {
                 teamId={teamFilter}
               />
             </View>
-            <View style={{ flex: 1, width: '100%', minWidth: 0, maxWidth: wide ? 420 : 360, alignSelf: wide ? 'flex-start' : 'center' }}>
+            <View style={{ width: wide ? 440 : '100%', maxWidth: wide ? 440 : 360, alignSelf: wide ? 'flex-end' : 'center' }}>
               <Card style={{ padding: space.md, gap: space.sm }}>
                 <AppText variant="small" style={{ fontFamily: fontFamily.bold, fontSize: 16, lineHeight: 20 }}>
                   {t('home.fansIn', { place: t('home.country') })}
                 </AppText>
                 <FanCount fans={provinceTotal} size={18} />
-                <View style={{ gap: 6 }}>
+                <View style={{ gap: regular ? space.xl : space.sm }}>
                   {activeFilter
                     ? provinceRows.map((row) => (
-                        <View key={row.id} style={{ gap: 4 }}>
+                        <View key={row.id} style={{ gap: space.xs }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }}>
                             <AppText variant="small" style={{ flex: 1, fontFamily: fontFamily.medium }}>
                               {row.id}
@@ -113,7 +112,7 @@ export function CostaRicaBoard() {
                         </View>
                       ))
                     : teamRows.map((row) => (
-                        <View key={row.share.teamId} style={{ gap: 4 }}>
+                        <View key={row.share.teamId} style={{ gap: space.xs }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }}>
                             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
                               <Helmet team={row.team!} size={22} />
