@@ -9,7 +9,6 @@ import { useTranslation } from 'react-i18next';
 import { streamGemini, type GeminiTurn } from '@/src/ai/gemini';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
 import { fontFamily, hitSize, space } from '@/src/theme/tokens';
-import { Button } from '@/src/ui/Button';
 import { Card } from '@/src/ui/Card';
 import { AppText } from '@/src/ui/Text';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
@@ -285,7 +284,16 @@ function AskDock() {
                 textColor={colors.text}
                 style={{ flex: 1, backgroundColor: colors.bg, fontFamily: fontFamily.regular }}
               />
-              <Button label={t('analysis.send')} disabled={(!draft.trim() && !photo) || busy} onPress={send} />
+              <IconButton
+                icon="send"
+                mode="contained"
+                size={22}
+                disabled={(!draft.trim() && !photo) || busy}
+                accessibilityLabel={t('analysis.send')}
+                containerColor={colors.accentFill}
+                iconColor={colors.accentText}
+                onPress={send}
+              />
             </View>
           </Card>
         </View>
