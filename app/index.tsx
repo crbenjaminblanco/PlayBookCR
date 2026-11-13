@@ -1,180 +1,292 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, View, type ScrollViewInstance } from 'react-native';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Linking, Platform, Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CostaRicaMap } from '@/src/components/CostaRicaMap';
-import { provinces, teamFans, type ProvinceId } from '@/src/data/provinces';
-import { teamById, teams } from '@/src/data/teams';
+import { teamStars, weekGames, type WeekGame, type WeekSide } from '@/src/data/week';
+import { teamById, teamLabel } from '@/src/data/teams';
 import { useSession } from '@/src/session/SessionProvider';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
 import { fontFamily, radius, space } from '@/src/theme/tokens';
+import { useAsk } from '@/src/ui/AskDock';
 import { Button } from '@/src/ui/Button';
 import { Card } from '@/src/ui/Card';
-import { FanCount } from '@/src/ui/FanCount';
-import { readableTeamColor } from '@/src/ui/teamColor';
-import { StateMessage } from '@/src/ui/StateMessage';
-import { Select } from '@/src/ui/Select';
+import { FieldLive } from '@/src/ui/FieldLive';
+import { Helmet } from '@/src/ui/Helmet';
+import { Screen } from '@/src/ui/Screen';
+import { StarRating } from '@/src/ui/StarRating';
 import { AppText } from '@/src/ui/Text';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
-import { useDemoLoad } from '@/src/ui/useDemoLoad';
-import { useHomeScroll } from '@/src/ui/homeScroll';
 
-export default function HomeScreen() {
-  const { t } = useTranslation();
+export default function AnalysisScreen() {
+  const { t, i18n } = useTranslation();
+  const { wide, regular } = useBreakpoint();
   const { colors } = useAppTheme();
-  const { auth, prefs } = useSession();
-  const { regular, wide } = useBreakpoint();
-  const insets = useSafeAreaInsets();
-  const { register } = useHomeScroll();
-  const params = useLocalSearchParams<{ section?: string }>();
-  const section = Array.isArray(params.section) ? params.section[0] : params.section;
-  const scrollRef = useRef<ScrollViewInstance>(null);
-  const offsets = useRef<Record<string, number>>({});
-  const favorite = teamById(auth?.teamId);
-  const { status, retry } = useDemoLoad();
-  const [selectedId, setSelectedId] = useState<ProvinceId | null>(null);
-  const [openId, setOpenId] = useState<ProvinceId | null>(null);
-  const [mapWidth, setMapWidth] = useState(320);
-  const [teamFilter, setTeamFilter] = useState<string | null>(null);
-  const provinceRows = useMemo(
-    () =>
-      provinces
-        .map((province) => ({ id: province.id, fans: teamFans(province, teamFilter) }))
-        .sort((left, right) => right.fans - left.fans),
-    [teamFilter],
-  );
-  const provinceTotal = provinceRows.reduce((sum, row) => sum + row.fans, 0);
-  const provinceMax = provinceRows[0]?.fans || 1;
-  const activeFilter = teamById(teamFilter);
-  const barColor = activeFilter ? readableTeamColor(activeFilter.color) : colors.accent;
-
-  function scrollToId(id: string, animated: boolean) {
-    scrollRef.current?.scrollTo({ y: Math.max(0, (offsets.current[id] ?? 0) - 12), animated });
-  }
-
-  useEffect(() => {
-    register((id) => scrollToId(id, true));
-    return () => register(null);
-  }, [register]);
-
-  function place(id: string, y: number) {
-    offsets.current[id] = y;
-    if (section === id) scrollToId(id, false);
-  }
+  const { prefs } = useSession();
+  const { setOpen } = useAsk();
+  const [openId, setOpenId] = useState<string | null>(null);
 
   return (
-    <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ paddingBottom: insets.bottom + space.xxxl }}>
-      <View style={{ width: '100%', maxWidth: 1120, alignSelf: 'center', paddingHorizontal: regular ? 32 : 16, gap: space.xxl, paddingTop: space.xxl }}>
-        <View onLayout={(event) => place('home', event.nativeEvent.layout.y)} style={{ gap: space.lg, alignItems: 'center' }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, maxWidth: '100%' }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success }} />
-            <AppText variant="small">
-              {new Intl.NumberFormat(prefs.language === 'en' ? 'en-US' : 'es-CR').format(2480)} {t('landing.statRegistered')} · {t('landing.statRegisteredNote')}
-            </AppText>
-          </View>
-          <AppText variant="display" style={{ textAlign: 'center', maxWidth: 760 }}>
-            {t('landing.heroTitle')}
+    <Screen>
+      <View style={{ gap: space.lg, alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, maxWidth: '100%' }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success }} />
+          <AppText variant="small">
+            {new Intl.NumberFormat(prefs.language === 'en' ? 'en-US' : 'es-CR').format(2480)} {t('landing.statRegistered')} · {t('landing.statRegisteredNote')}
           </AppText>
-          <AppText variant="body" tone="muted" style={{ textAlign: 'center', maxWidth: 640 }}>
-            {t('landing.heroBody')}
-          </AppText>
-          <View style={{ flexDirection: regular ? 'row' : 'column', gap: space.md, width: regular ? undefined : '100%' }}>
-            <Button label={t('landing.tryPredictor')} onPress={() => router.push('/analysis')} />
-            <Button label={t('landing.join')} variant="secondary" onPress={() => router.push('/community')} />
-          </View>
         </View>
-
-        <View onLayout={(event) => place('map', event.nativeEvent.layout.y)} style={{ gap: space.lg, marginTop: space.xl, zIndex: openId ? 30 : 0 }}>
-          <View style={{ gap: space.sm, alignItems: 'center' }}>
-            <AppText variant="kicker" tone="accent">
-              {t('home.kicker')}
-            </AppText>
-            <AppText variant="title" style={{ textAlign: 'center' }}>
-              {t('home.title')}
-            </AppText>
-            <AppText variant="body" tone="muted" style={{ textAlign: 'center', maxWidth: 640 }}>
-              {t('home.subtitle')}
-            </AppText>
-          </View>
-          {status === 'loading' ? <StateMessage variant="loading" title={t('common.loading')} /> : null}
-          {status === 'error' ? (
-            <StateMessage variant="error" title={t('common.error')} actionLabel={t('common.retry')} onAction={retry} />
-          ) : null}
-          {status === 'ready' && provinces.length > 0 ? (
-            <View style={{ position: 'relative', gap: space.md }}>
-              {openId ? null : (
-              <View style={{ gap: space.sm, maxWidth: 360, width: '100%', alignSelf: 'center', zIndex: 36 }}>
-                <AppText variant="small" tone="muted" style={{ fontFamily: fontFamily.semibold, textAlign: 'center' }}>
-                  {t('home.filter')}
-                </AppText>
-                <Select
-                  label={t('home.filter')}
-                  value={teamFilter ?? ''}
-                  options={[
-                    { id: '', label: t('team.all') },
-                    ...teams.map((team) => ({ id: team.id, label: `${team.city} ${team.name}` })),
-                  ]}
-                  onChange={(id) => setTeamFilter(id || null)}
-                />
-              </View>
-              )}
-              {openId ? (
-                <Pressable accessibilityLabel={t('home.close')} onPress={() => setOpenId(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20 }} />
-              ) : null}
-              <View style={{ flexDirection: wide ? 'row' : 'column', gap: space.xl, alignItems: 'flex-start' }}>
-                <View style={{ flex: 1.15, width: '100%', minWidth: 0, maxWidth: wide ? 520 : '100%' }} onLayout={(event) => setMapWidth(event.nativeEvent.layout.width)}>
-                  <CostaRicaMap
-                    provinces={provinces}
-                    selectedId={selectedId}
-                    openId={openId}
-                    onOpen={setOpenId}
-                    onClose={() => setOpenId(null)}
-                    onSelect={setSelectedId}
-                    width={mapWidth}
-                    favoriteId={favorite?.id}
-                    teamId={teamFilter}
-                  />
-                </View>
-                <View style={{ flex: 1, width: '100%', minWidth: 0 }}>
-                  <Card>
-                    <AppText variant="heading">{t('home.fansIn', { place: t('home.country') })}</AppText>
-                    <FanCount fans={provinceTotal} size={28} />
-                    <View style={{ gap: space.sm }}>
-                      {provinceRows.map((row) => (
-                        <View key={row.id} style={{ gap: 4 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }}>
-                            <AppText variant="small" style={{ flex: 1, fontFamily: fontFamily.medium }}>
-                              {row.id}
-                            </AppText>
-                            <FanCount fans={row.fans} />
-                          </View>
-                          <View style={{ height: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceElevated }}>
-                            <View
-                              style={{
-                                width: `${(row.fans / provinceMax) * 100}%`,
-                                height: 8,
-                                borderRadius: radius.pill,
-                                backgroundColor: barColor,
-                              }}
-                            />
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  </Card>
-                </View>
-              </View>
-            </View>
-          ) : null}
+        <AppText variant="display" style={{ textAlign: 'center', maxWidth: 760 }}>
+          {t('landing.heroTitle')}
+        </AppText>
+        <AppText variant="body" tone="muted" style={{ textAlign: 'center', maxWidth: 640 }}>
+          {t('landing.heroBody')}
+        </AppText>
+        <View style={{ flexDirection: regular ? 'row' : 'column', gap: space.md, width: regular ? undefined : '100%' }}>
+          <Button
+            label={t('landing.tryPredictor')}
+            onPress={() => {
+              if (Platform.OS === 'web') document.getElementById('week')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          />
+          <Button label={t('landing.join')} variant="secondary" onPress={() => router.push('/community')} />
         </View>
+      </View>
+      <View nativeID="week" style={{ gap: space.sm, alignItems: 'center' }}>
+        <AppText variant="kicker" tone="accent">
+          {t('analysis.kicker')}
+        </AppText>
+        <AppText variant="title" style={{ textAlign: 'center' }}>
+          {t('analysis.title')}
+        </AppText>
+        <AppText variant="body" tone="muted" style={{ textAlign: 'center' }}>
+          {t('analysis.week')}
+        </AppText>
+        <View style={{ width: '100%', maxWidth: wide ? 720 : '100%' }}>
+          <FieldLive />
+        </View>
+      </View>
 
-        <AppText variant="small" tone="muted" style={{ textAlign: 'center' }}>
-          {t('landing.footer')}
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => setOpen(true)}
+        style={{
+          width: '100%',
+          maxWidth: wide ? 640 : '100%',
+          alignSelf: 'center',
+          minHeight: 48,
+          borderRadius: radius.pill,
+          borderWidth: 1.5,
+          borderColor: colors.borderStrong,
+          backgroundColor: colors.surface,
+          justifyContent: 'center',
+          paddingHorizontal: space.lg,
+        }}>
+        <AppText variant="body" tone="muted">
+          {t('analysis.ask')}
+        </AppText>
+      </Pressable>
+
+      <View style={{ width: '100%', maxWidth: wide ? 920 : '100%', alignSelf: 'center' }}>
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          {weekGames.map((game, index) => (
+            <GameRow
+              key={game.id}
+              game={game}
+              open={openId === game.id}
+              last={index === weekGames.length - 1}
+              onToggle={() => setOpenId(openId === game.id ? null : game.id)}
+            />
+          ))}
+        </Card>
+        <AppText variant="small" tone="muted" style={{ marginTop: space.md, textAlign: 'center' }}>
+          {t('analysis.disclaimer')}
         </AppText>
       </View>
-    </ScrollView>
+    </Screen>
+  );
+}
+
+function verdict(game: WeekGame) {
+  const favorite = teamById(game.favoriteId);
+  const favoriteIsHome = game.favoriteId === game.home.teamId;
+  const scored = game.homeScore != null && game.awayScore != null;
+  return {
+    favorite: favorite ? teamLabel(favorite) : '',
+    winnerScore: scored ? (favoriteIsHome ? game.homeScore : game.awayScore) : '',
+    loserScore: scored ? (favoriteIsHome ? game.awayScore : game.homeScore) : '',
+    margin: scored ? Math.abs((game.homeScore ?? 0) - (game.awayScore ?? 0)) : game.margin,
+    scored,
+  };
+}
+
+function GameRow({ game, open, last, onToggle }: { game: WeekGame; open: boolean; last: boolean; onToggle: () => void }) {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+  const { compact } = useBreakpoint();
+  const home = teamById(game.home.teamId);
+  const away = teamById(game.away.teamId);
+  const line = verdict(game);
+  if (!home || !away) return null;
+
+  return (
+    <View style={{ borderBottomWidth: last && !open ? 0 : 1, borderBottomColor: colors.border }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={onToggle}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: space.md,
+          paddingHorizontal: space.lg,
+          paddingVertical: space.md,
+          backgroundColor: open ? colors.surfaceElevated : 'transparent',
+        }}>
+        <TeamSide side={game.away} />
+        <View style={{ alignItems: 'center', minWidth: 88 }}>
+          <AppText variant="stat" style={{ fontSize: 22, lineHeight: 26 }}>
+            {line.scored ? `${game.awayScore}–${game.homeScore}` : t('landing.vs')}
+          </AppText>
+          <AppText variant="small" tone="accent" style={{ fontFamily: fontFamily.semibold }}>
+            {t('analysis.margin', { margin: line.margin })}
+          </AppText>
+        </View>
+        <TeamSide side={game.home} align="right" />
+      </Pressable>
+      {open ? (
+        <View style={{ gap: space.lg, paddingHorizontal: space.lg, paddingBottom: space.lg, backgroundColor: colors.surfaceElevated }}>
+          <AppText variant="body" style={{ textAlign: 'center', fontFamily: fontFamily.semibold }}>
+            {line.scored ? t('analysis.verdictLine', line) : `${line.favorite}, ${t('analysis.margin', { margin: line.margin })}`}
+          </AppText>
+          {game.noteKey ? (
+            <AppText variant="small" tone="muted" style={{ textAlign: 'center' }}>
+              {t(game.noteKey)}
+            </AppText>
+          ) : null}
+          <View style={{ flexDirection: compact ? 'column' : 'row', gap: space.md }}>
+            <SideFacts side={game.away} />
+            <SideFacts side={game.home} />
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+            <Chip label={game.kickoff} />
+            <Chip label={game.stadium} />
+            {game.weather ? <Chip label={game.weather} /> : null}
+          </View>
+          <AppText variant="small" tone="muted">
+            {t('analysis.noInjuries')}
+          </AppText>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function TeamSide({ side, align = 'left' }: { side: WeekSide; align?: 'left' | 'right' }) {
+  const team = teamById(side.teamId);
+  if (!team) return null;
+  const end = align === 'right';
+  return (
+    <View style={{ flex: 1, flexDirection: end ? 'row-reverse' : 'row', alignItems: 'center', gap: space.sm }}>
+      <Helmet team={team} size={36} />
+      <View style={{ alignItems: end ? 'flex-end' : 'flex-start', gap: 2 }}>
+        <AppText variant="small" style={{ fontFamily: fontFamily.semibold }}>
+          {team.abbr}
+        </AppText>
+        <AppText variant="small" tone="muted">
+          {side.record}
+        </AppText>
+        <StarRating value={teamStars(side)} label={team.abbr} />
+        {side.recent ? <FormLine recent={side.recent} align={align} /> : null}
+      </View>
+    </View>
+  );
+}
+
+function FormLine({ recent, align }: { recent: string; align: 'left' | 'right' }) {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ flexDirection: align === 'right' ? 'row-reverse' : 'row', gap: 3 }} accessibilityLabel={t('analysis.form')}>
+      {recent.split('').map((mark, index) => (
+        <View
+          key={`${mark}-${index}`}
+          style={{
+            width: 16,
+            height: 16,
+            borderRadius: 4,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: mark === 'W' ? colors.success : mark === 'L' ? colors.danger : colors.star,
+          }}>
+          <AppText variant="small" style={{ fontSize: 10, lineHeight: 12, color: mark === 'W' ? colors.success : mark === 'L' ? colors.danger : colors.star }}>
+            {mark}
+          </AppText>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function SideFacts({ side }: { side: WeekSide }) {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+  const team = teamById(side.teamId);
+  return (
+    <View style={{ flex: 1, gap: space.sm, padding: space.md, borderRadius: radius.card, backgroundColor: colors.bg }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <AppText variant="small" style={{ fontFamily: fontFamily.semibold }}>
+          {team?.abbr}
+        </AppText>
+        <StarRating value={teamStars(side)} label={team?.abbr ?? ''} />
+      </View>
+      {side.recent ? (
+        <AppText variant="small" tone="muted">
+          {t('analysis.form')}
+        </AppText>
+      ) : null}
+      {side.recent ? <FormLine recent={side.recent} align="left" /> : null}
+      <AppText variant="small" tone="muted">
+        {t('analysis.offense')}
+      </AppText>
+      <RankLine ground={side.offense.rush} air={side.offense.pass} />
+      <AppText variant="small" tone="muted">
+        {t('analysis.defense')}
+      </AppText>
+      <RankLine ground={side.defense.rush} air={side.defense.pass} />
+      <AppText variant="small" tone="muted">
+        {t('analysis.noInjuries')}
+      </AppText>
+      <Pressable accessibilityRole="link" onPress={() => Linking.openURL(side.injuryReportUrl)} style={{ minHeight: 44, justifyContent: 'center' }}>
+        <AppText variant="small" tone="accent" style={{ fontFamily: fontFamily.semibold }}>
+          {t('analysis.report')}
+        </AppText>
+      </Pressable>
+    </View>
+  );
+}
+
+function RankLine({ ground, air }: { ground: number; air: number }) {
+  const { t } = useTranslation();
+  return (
+    <View style={{ flexDirection: 'row', gap: space.md }}>
+      <AppText variant="small">
+        {t('analysis.ground')} {t('analysis.rank', { rank: ground })}
+      </AppText>
+      <AppText variant="small">
+        {t('analysis.air')} {t('analysis.rank', { rank: air })}
+      </AppText>
+    </View>
+  );
+}
+
+function Chip({ label }: { label: string }) {
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border }}>
+      <AppText variant="small">{label}</AppText>
+    </View>
   );
 }
 

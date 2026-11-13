@@ -14,9 +14,7 @@ import { Helmet } from '@/src/ui/Helmet';
 import { ProModal } from '@/src/ui/ProModal';
 import { AppText } from '@/src/ui/Text';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
-import { useHomeScroll } from '@/src/ui/homeScroll';
-
-type Item = { id: string; label: string; href?: '/analysis' | '/store' | '/community' };
+type Item = { id: string; label: string; href: '/' | '/community' | '/store' };
 
 export function AppHeader() {
   const { t } = useTranslation();
@@ -25,30 +23,23 @@ export function AppHeader() {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { auth } = useSession();
-  const { scrollTo } = useHomeScroll();
   const [menuOpen, setMenuOpen] = useState(false);
   const [proOpen, setProOpen] = useState(false);
   const team = teamById(auth?.teamId);
 
   const items: Item[] = [
-    { id: 'home', label: t('landing.navHome') },
-    { id: 'analysis', label: t('tabs.analysis'), href: '/analysis' },
+    { id: 'home', label: t('landing.navHome'), href: '/' },
     { id: 'community', label: t('landing.navCommunity'), href: '/community' },
     { id: 'store', label: t('tabs.store'), href: '/store' },
   ];
 
   function follow(item: Item) {
     setMenuOpen(false);
-    if (item.href) {
-      router.push(item.href);
-      return;
-    }
-    if (pathname === '/' && scrollTo(item.id)) return;
-    router.push({ pathname: '/', params: { section: item.id } });
+    router.push(item.href);
   }
 
   function active(item: Item) {
-    return item.href ? pathname === item.href : pathname === '/' && item.id === 'home';
+    return pathname === item.href;
   }
 
   return (

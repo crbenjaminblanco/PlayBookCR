@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Linking, Pressable, ScrollView, TextInput, View, type ScrollViewInstance } from 'react-native';
+import { FontAwesome6 } from '@expo/vector-icons';
+import { Linking, Platform, Pressable, ScrollView, TextInput, View, type ScrollViewInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,7 +9,9 @@ import { teamById } from '@/src/data/teams';
 import { useSession } from '@/src/session/SessionProvider';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
 import { fontFamily, hitSize, radius, space } from '@/src/theme/tokens';
+import { CostaRicaBoard } from '@/src/ui/CostaRicaBoard';
 import { Helmet, InitialsBadge } from '@/src/ui/Helmet';
+import { Card } from '@/src/ui/Card';
 import { AppText } from '@/src/ui/Text';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
 
@@ -23,9 +26,9 @@ type ChatMessage = {
 };
 
 const socials = [
-  { id: 'instagram', label: 'Instagram', url: 'https://instagram.com' },
-  { id: 'x', label: 'X', url: 'https://x.com' },
-  { id: 'facebook', label: 'Facebook', url: 'https://facebook.com' },
+  { id: 'instagram', label: 'Instagram', url: 'https://instagram.com', icon: 'instagram', color: '#E1306C' },
+  { id: 'x', label: 'X', url: 'https://x.com', icon: 'x-twitter', color: '#111827' },
+  { id: 'facebook', label: 'Facebook', url: 'https://facebook.com', icon: 'facebook-f', color: '#1877F2' },
 ] as const;
 
 const replies = ['community.reply1', 'community.reply2', 'community.reply3'] as const;
@@ -41,12 +44,13 @@ export default function CommunityScreen() {
   const { t, i18n } = useTranslation();
   const { colors } = useAppTheme();
   const { auth } = useSession();
-  const { pad } = useBreakpoint();
+  const { wide } = useBreakpoint();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollViewInstance>(null);
   const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const replyIndex = useRef(0);
   const favorite = teamById(auth?.teamId);
+  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [extra, setExtra] = useState<ChatMessage[]>([]);
   const samples: ChatMessage[] = communityPosts.map((post, index) => ({
@@ -58,12 +62,19 @@ export default function CommunityScreen() {
     time: `${18}:${String(4 + index * 7).padStart(2, '0')}`,
   }));
   const messages = [...samples, ...extra];
+  const latest = messages[messages.length - 1];
 
   useEffect(() => {
     return () => {
       if (replyTimer.current) clearTimeout(replyTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const frame = requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: false }));
+    return () => cancelAnimationFrame(frame);
+  }, [open, messages.length]);
 
   const [typing, setTyping] = useState<{ author: string; place: string; teamId?: string; body: string } | null>(null);
 
@@ -109,176 +120,213 @@ export default function CommunityScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View
-        style={{
-          paddingHorizontal: pad,
-          paddingVertical: space.md,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: space.md,
-        }}>
-        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.success }} />
-        <View style={{ flex: 1, gap: space.sm }}>
-          <View>
-            <AppText variant="heading">{t('community.title')}</AppText>
-            <AppText variant="small" tone="muted">
-              {t('community.live')}
-            </AppText>
-          </View>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm }}>
-            <AppText variant="small" tone="muted" style={{ fontFamily: fontFamily.semibold }}>
-              {t('community.social')}
-            </AppText>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}>
+        <View style={{ width: '100%', maxWidth: 720, alignSelf: 'center', alignItems: 'center', paddingHorizontal: wide ? 32 : 16, paddingTop: space.lg, gap: space.sm }}>
+          <AppText variant="kicker" tone="accent" style={{ textAlign: 'center' }}>
+            {t('community.social')}
+          </AppText>
+          <View style={{ flexDirection: 'row', gap: space.sm, width: '100%', maxWidth: 560, justifyContent: 'center' }}>
             {socials.map((item) => (
               <Pressable
                 key={item.id}
                 accessibilityRole="link"
+                accessibilityLabel={item.label}
                 onPress={() => Linking.openURL(item.url)}
                 style={{
-                  minHeight: 36,
-                  paddingHorizontal: space.md,
-                  borderRadius: radius.pill,
+                  flex: 1,
+                  minHeight: 52,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: space.sm,
+                  paddingHorizontal: space.sm,
+                  borderRadius: radius.card,
                   borderWidth: 1,
                   borderColor: colors.borderStrong,
-                  justifyContent: 'center',
+                  backgroundColor: colors.surface,
                 }}>
-                <AppText variant="small">{item.label}</AppText>
+                <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: item.color, alignItems: 'center', justifyContent: 'center' }}>
+                  <FontAwesome6 name={item.icon} iconStyle="brand" size={13} color="#FFFFFF" />
+                </View>
+                <AppText variant="small" style={{ fontFamily: fontFamily.semibold }}>
+                  {item.label}
+                </AppText>
               </Pressable>
             ))}
           </View>
-          <AppText variant="small" tone="muted">
-            {t('community.socialNote')}
-          </AppText>
         </View>
-      </View>
-
-      <ScrollView
-        ref={scrollRef}
-        style={{ flex: 1 }}
-        keyboardShouldPersistTaps="handled"
-        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-        contentContainerStyle={{
-          width: '100%',
-          maxWidth: 720,
-          alignSelf: 'center',
-          paddingHorizontal: pad,
-          paddingVertical: space.lg,
-          gap: space.md,
-        }}>
-        {messages.map((message) => {
-          const team = teamById(message.teamId);
-          return (
-            <View
-              key={message.id}
-              style={{
-                flexDirection: message.mine ? 'row-reverse' : 'row',
-                alignItems: 'flex-end',
-                gap: space.sm,
-              }}>
-              {message.mine ? (
-                favorite ? (
-                  <Helmet team={favorite} size={32} />
-                ) : (
-                  <InitialsBadge label="CR" color={colors.accent} size={32} />
-                )
-              ) : team ? (
-                <Helmet team={team} size={32} />
-              ) : null}
-              <View style={{ maxWidth: '78%', gap: 4, alignItems: message.mine ? 'flex-end' : 'flex-start' }}>
-                {message.mine ? null : (
-                  <AppText variant="small" tone="muted">
-                    {message.author}
-                    {message.place ? ` · ${message.place}` : ''}
-                  </AppText>
-                )}
-                <View
-                  style={{
-                    backgroundColor: message.mine ? colors.accentFill : colors.surface,
-                    borderWidth: message.mine ? 0 : 1,
-                    borderColor: colors.border,
-                    borderRadius: 18,
-                    borderBottomRightRadius: message.mine ? 4 : 18,
-                    borderBottomLeftRadius: message.mine ? 18 : 4,
-                    paddingHorizontal: space.md,
-                    paddingVertical: space.sm,
-                  }}>
-                  <AppText variant="body" tone={message.mine ? 'inverse' : 'default'}>
-                    {message.body}
-                  </AppText>
-                </View>
-                <AppText variant="small" tone="muted">
-                  {message.time}
-                </AppText>
-              </View>
-            </View>
-          );
-        })}
-        {typing ? (
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm }}>
-            {teamById(typing.teamId) ? <Helmet team={teamById(typing.teamId)!} size={32} /> : null}
-            <View style={{ maxWidth: '78%', gap: 4 }}>
-              <AppText variant="small" tone="muted">
-                {typing.author} · {typing.place}
-              </AppText>
-              <View style={{ backgroundColor: colors.surfaceElevated, borderRadius: 18, borderBottomLeftRadius: 4, paddingHorizontal: space.md, paddingVertical: space.sm }}>
-                <AppText variant="body">{typing.body || '···'}</AppText>
-              </View>
-            </View>
-          </View>
-        ) : null}
+        <CostaRicaBoard />
       </ScrollView>
 
-      <View
+      {open ? null : (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('community.live')}
+        onPress={() => setOpen(true)}
         style={{
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
+          position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+          left: 16,
+          right: 16,
+          bottom: insets.bottom + 12,
+          zIndex: 40,
+          maxWidth: 720,
+          alignSelf: 'center',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: space.sm,
+          minHeight: 56,
+          paddingHorizontal: space.md,
+          borderRadius: radius.card,
+          borderWidth: 1,
+          borderColor: colors.borderStrong,
           backgroundColor: colors.surface,
-          paddingTop: space.sm,
-          paddingBottom: insets.bottom + space.sm,
-          paddingHorizontal: pad,
         }}>
-        <View style={{ width: '100%', maxWidth: 720, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            placeholder={t('community.placeholder')}
-            placeholderTextColor={colors.textMuted}
-            accessibilityLabel={t('community.placeholder')}
-            onSubmitEditing={send}
-            style={{
-              flex: 1,
-              minHeight: hitSize,
-              borderWidth: 1.5,
-              borderColor: colors.borderStrong,
-              borderRadius: radius.pill,
-              paddingHorizontal: space.lg,
-              color: colors.text,
-              backgroundColor: colors.bg,
-              fontFamily: fontFamily.regular,
-              fontSize: 16,
-            }}
-          />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('community.send')}
-            onPress={send}
-            style={{
-              minHeight: hitSize,
-              paddingHorizontal: space.lg,
-              borderRadius: radius.pill,
-              backgroundColor: colors.accentFill,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: draft.trim() ? 1 : 0.45,
-            }}>
-            <AppText variant="small" tone="inverse" style={{ fontFamily: fontFamily.semibold }}>
-              {t('community.send')}
-            </AppText>
-          </Pressable>
+        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.success }} />
+        <View style={{ flex: 1 }}>
+          <AppText variant="small" style={{ fontFamily: fontFamily.semibold }}>
+            {t('community.live')}
+          </AppText>
+          <AppText variant="small" tone="muted" numberOfLines={1}>
+            {latest ? `${latest.author}: ${latest.body}` : t('community.placeholder')}
+          </AppText>
         </View>
-      </View>
+      </Pressable>
+      )}
+
+      {open ? (
+        <Pressable
+          accessibilityLabel={t('home.close')}
+          onPress={() => setOpen(false)}
+          style={{
+            position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            backgroundColor: 'rgba(7,11,22,0.55)',
+            zIndex: 70,
+          }}
+        />
+      ) : null}
+      {open ? (
+        <View
+          style={{
+            position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+            bottom: insets.bottom + 84,
+            zIndex: 80,
+            ...(wide ? { right: 16, width: 440 } : { left: 16, right: 16 }),
+          }}>
+          <Card>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flex: 1 }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.success }} />
+                <AppText variant="heading">{t('community.live')}</AppText>
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('home.close')} onPress={() => setOpen(false)} style={{ minWidth: hitSize, minHeight: hitSize, alignItems: 'center', justifyContent: 'center' }}>
+                <AppText variant="heading" tone="muted">
+                  ×
+                </AppText>
+              </Pressable>
+            </View>
+            <ScrollView
+              ref={scrollRef}
+              style={{ maxHeight: 360 }}
+              keyboardShouldPersistTaps="handled"
+              onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+              contentContainerStyle={{ gap: space.md }}>
+              {messages.map((message) => {
+                const team = teamById(message.teamId);
+                return (
+                  <View key={message.id} style={{ flexDirection: message.mine ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: space.sm }}>
+                    {message.mine ? (
+                      favorite ? (
+                        <Helmet team={favorite} size={28} />
+                      ) : (
+                        <InitialsBadge label="CR" color={colors.accent} size={28} />
+                      )
+                    ) : team ? (
+                      <Helmet team={team} size={28} />
+                    ) : null}
+                    <View style={{ maxWidth: '78%', gap: 4, alignItems: message.mine ? 'flex-end' : 'flex-start' }}>
+                      {message.mine ? null : (
+                        <AppText variant="small" tone="muted">
+                          {message.author}
+                          {message.place ? ` · ${message.place}` : ''}
+                        </AppText>
+                      )}
+                      <View
+                        style={{
+                          backgroundColor: message.mine ? colors.accentFill : colors.bg,
+                          borderRadius: 16,
+                          borderBottomRightRadius: message.mine ? 4 : 16,
+                          borderBottomLeftRadius: message.mine ? 16 : 4,
+                          paddingHorizontal: space.md,
+                          paddingVertical: space.sm,
+                        }}>
+                        <AppText variant="body" tone={message.mine ? 'inverse' : 'default'}>
+                          {message.body}
+                        </AppText>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+              {typing ? (
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm }}>
+                  {teamById(typing.teamId) ? <Helmet team={teamById(typing.teamId)!} size={28} /> : null}
+                  <View style={{ maxWidth: '78%', gap: 4 }}>
+                    <AppText variant="small" tone="muted">
+                      {typing.author} · {typing.place}
+                    </AppText>
+                    <View style={{ backgroundColor: colors.bg, borderRadius: 16, borderBottomLeftRadius: 4, paddingHorizontal: space.md, paddingVertical: space.sm }}>
+                      <AppText variant="body">{typing.body || '···'}</AppText>
+                    </View>
+                  </View>
+                </View>
+              ) : null}
+            </ScrollView>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+              <TextInput
+                value={draft}
+                onChangeText={setDraft}
+                placeholder={t('community.placeholder')}
+                placeholderTextColor={colors.textMuted}
+                accessibilityLabel={t('community.placeholder')}
+                onSubmitEditing={send}
+                style={{
+                  flex: 1,
+                  minHeight: hitSize,
+                  borderWidth: 1.5,
+                  borderColor: colors.borderStrong,
+                  borderRadius: radius.pill,
+                  paddingHorizontal: space.lg,
+                  color: colors.text,
+                  backgroundColor: colors.bg,
+                  fontFamily: fontFamily.regular,
+                  fontSize: 16,
+                }}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('community.send')}
+                onPress={send}
+                style={{
+                  minHeight: hitSize,
+                  paddingHorizontal: space.lg,
+                  borderRadius: radius.pill,
+                  backgroundColor: colors.accentFill,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: draft.trim() ? 1 : 0.45,
+                }}>
+                <AppText variant="small" tone="inverse" style={{ fontFamily: fontFamily.semibold }}>
+                  {t('community.send')}
+                </AppText>
+              </Pressable>
+            </View>
+          </Card>
+        </View>
+      ) : null}
     </View>
   );
 }

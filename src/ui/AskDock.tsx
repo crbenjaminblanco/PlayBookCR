@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePathname } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Linking, Platform, Pressable, ScrollView, View, type ScrollViewInstance, type TextStyle } from 'react-native';
@@ -90,7 +91,9 @@ function AskDock() {
   const { t, i18n } = useTranslation();
   const { colors } = useAppTheme();
   const { wide } = useBreakpoint();
+  const pathname = usePathname();
   const { open, setOpen } = useAsk();
+  const hidden = pathname === '/community';
   const [draft, setDraft] = useState('');
   const [photo, setPhoto] = useState<{ mime: string; data: string } | null>(null);
   const [turns, setTurns] = useState<GeminiTurn[]>([]);
@@ -130,6 +133,10 @@ function AskDock() {
     );
     AsyncStorage.setItem(CHAT_KEY, JSON.stringify(slim)).catch(() => undefined);
   }, [turns, ready]);
+
+  useEffect(() => {
+    if (hidden && open) setOpen(false);
+  }, [hidden, open, setOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -172,6 +179,8 @@ function AskDock() {
       setBusy(false);
     }
   }
+
+  if (hidden) return null;
 
   return (
     <>
