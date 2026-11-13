@@ -42,7 +42,7 @@ function clock(language: string) {
 
 export default function CommunityScreen() {
   const { t, i18n } = useTranslation();
-  const { colors } = useAppTheme();
+  const { colors, name: themeName } = useAppTheme();
   const { auth } = useSession();
   const { wide } = useBreakpoint();
   const insets = useSafeAreaInsets();
@@ -145,12 +145,22 @@ export default function CommunityScreen() {
                   borderColor: colors.borderStrong,
                   backgroundColor: colors.surface,
                 }}>
-                <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: item.color, alignItems: 'center', justifyContent: 'center' }}>
-                  <FontAwesome6 name={item.icon} iconStyle="brand" size={13} color="#FFFFFF" />
+                <View
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    backgroundColor: item.id === 'x' && themeName === 'dark' ? '#F8FAFC' : item.color,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                  <FontAwesome6 name={item.icon} iconStyle="brand" size={13} color={item.id === 'x' && themeName === 'dark' ? '#111827' : '#FFFFFF'} />
                 </View>
-                <AppText variant="small" style={{ fontFamily: fontFamily.semibold }}>
-                  {item.label}
-                </AppText>
+                {item.id === 'x' ? null : (
+                  <AppText variant="small" style={{ fontFamily: fontFamily.semibold }}>
+                    {item.label}
+                  </AppText>
+                )}
               </Pressable>
             ))}
           </View>
@@ -227,7 +237,7 @@ export default function CommunityScreen() {
             alignItems: 'center',
             paddingHorizontal: space.lg,
           }}>
-          <View style={{ width: '100%', maxWidth: 440 }}>
+          <View style={{ width: '100%', maxWidth: wide ? 720 : 440 }}>
           <Card>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flex: 1 }}>
@@ -242,7 +252,7 @@ export default function CommunityScreen() {
             </View>
             <ScrollView
               ref={scrollRef}
-              style={{ maxHeight: 360 }}
+              style={{ maxHeight: wide ? 520 : 360 }}
               keyboardShouldPersistTaps="handled"
               onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
               contentContainerStyle={{ gap: space.md }}>

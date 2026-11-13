@@ -29,6 +29,7 @@ export function CostaRicaBoard() {
   const [openId, setOpenId] = useState<ProvinceId | null>(null);
   const [mapWidth, setMapWidth] = useState(320);
   const [teamFilter, setTeamFilter] = useState<string | null>(null);
+  const [showAllTeams, setShowAllTeams] = useState(false);
   const provinceRows = useMemo(
     () =>
       provinces
@@ -38,8 +39,15 @@ export function CostaRicaBoard() {
   );
   const provinceTotal = provinceRows.reduce((sum, row) => sum + row.fans, 0);
   const provinceMax = provinceRows[0]?.fans || 1;
-  const teamRows = useMemo(() => countryShares().map((share) => ({ share, team: teamById(share.teamId) })).filter((row) => row.team), []);
-  const teamMax = teamRows[0]?.share.fans || 1;
+  const teamRows = useMemo(() => {
+    const totals = new Map(countryShares().map((share) => [share.teamId, share.fans]));
+    return teams
+      .map((team) => ({ team, fans: totals.get(team.id) ?? 0 }))
+      .sort((left, right) => right.fans - left.fans || left.team.city.localeCompare(right.team.city));
+  }, []);
+  const teamPreview = 8;
+  const visibleTeams = showAllTeams ? teamRows : teamRows.slice(0, teamPreview);
+  const teamMax = teamRows[0]?.fans || 1;
   const activeFilter = teamById(teamFilter);
   const barColor = activeFilter ? readableTeamColor(activeFilter.color) : colors.accent;
 
@@ -111,22 +119,29 @@ export function CostaRicaBoard() {
                           </View>
                         </View>
                       ))
-                    : teamRows.map((row) => (
-                        <View key={row.share.teamId} style={{ gap: space.xs }}>
+                    : visibleTeams.map((row) => (
+                        <View key={row.team.id} style={{ gap: space.xs }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }}>
                             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-                              <Helmet team={row.team!} size={22} />
+                              <Helmet team={row.team} size={22} />
                               <AppText variant="small" style={{ flex: 1, fontFamily: fontFamily.medium }}>
-                                {teamLabel(row.team!)}
+                                {teamLabel(row.team)}
                               </AppText>
                             </View>
-                            <FanCount fans={row.share.fans} />
+                            <FanCount fans={row.fans} />
                           </View>
                           <View style={{ height: 5, borderRadius: radius.pill, backgroundColor: colors.surfaceElevated }}>
-                            <View style={{ width: `${(row.share.fans / teamMax) * 100}%`, height: 5, borderRadius: radius.pill, backgroundColor: readableTeamColor(row.team!.color) }} />
+                            <View style={{ width: `${(row.fans / teamMax) * 100}%`, height: 5, borderRadius: radius.pill, backgroundColor: readableTeamColor(row.team.color) }} />
                           </View>
                         </View>
                       ))}
+                  {!activeFilter && teamRows.length > teamPreview ? (
+                    <Pressable accessibilityRole="button" onPress={() => setShowAllTeams((current) => !current)} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
+                      <AppText variant="small" tone="accent" style={{ fontFamily: fontFamily.semibold }}>
+                        {showAllTeams ? t('home.showLess') : t('home.showMore')}
+                      </AppText>
+                    </Pressable>
+                  ) : null}
                 </View>
               </Card>
             </View>
