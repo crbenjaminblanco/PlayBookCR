@@ -68,38 +68,43 @@ export function AppHeader() {
           <Brand />
         </Pressable>
         {regular ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg }}>
-            {items.map((item) => (
-              <NavLink key={item.id} label={item.label} selected={active(item)} onPress={() => follow(item)} />
-            ))}
-          </View>
+          <>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg }}>
+              {items.map((item) => (
+                <NavLink key={item.id} label={item.label} selected={active(item)} onPress={() => follow(item)} />
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+              <Button label={t('landing.pro')} variant="gold" onPress={() => setProOpen(true)} />
+              <Button label={t('landing.account')} variant="secondary" onPress={() => router.push('/profile')} />
+              {team ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('tabs.profile')}
+                  onPress={() => router.push('/profile')}
+                  style={{ minHeight: 44, justifyContent: 'center' }}>
+                  <Helmet team={team} size={40} />
+                </Pressable>
+              ) : auth ? (
+                <Button label={t('tabs.profile')} variant="secondary" onPress={() => router.push('/profile')} />
+              ) : (
+                <Button label={t('landing.enter')} onPress={() => router.push('/welcome')} />
+              )}
+            </View>
+          </>
         ) : (
-          <Pressable accessibilityRole="button" onPress={() => setMenuOpen((open) => !open)} style={{ minHeight: 44, justifyContent: 'center' }}>
-            <AppText variant="small" tone="accent">
-              {t('landing.menu')}
-            </AppText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('landing.menu')}
+            accessibilityState={{ expanded: menuOpen }}
+            onPress={() => setMenuOpen((open) => !open)}
+            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+            <Hamburger color={colors.text} />
           </Pressable>
         )}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-          {regular ? <Button label={t('landing.pro')} onPress={() => setProOpen(true)} /> : null}
-          <Button label={t('landing.account')} variant="secondary" onPress={() => router.push('/profile')} />
-          {team ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('tabs.profile')}
-              onPress={() => router.push('/profile')}
-              style={{ minHeight: 44, justifyContent: 'center' }}>
-              <Helmet team={team} size={40} />
-            </Pressable>
-          ) : auth ? (
-            <Button label={t('tabs.profile')} variant="secondary" onPress={() => router.push('/profile')} />
-          ) : (
-            <Button label={t('landing.enter')} onPress={() => router.push('/welcome')} />
-          )}
-        </View>
       </View>
       {menuOpen && !regular ? (
-        <View style={{ gap: space.xs }}>
+        <View style={{ gap: space.sm }}>
           {items.map((item) => (
             <Pressable key={item.id} accessibilityRole="button" onPress={() => follow(item)} style={{ minHeight: 44, justifyContent: 'center' }}>
               <AppText variant="body" tone={active(item) ? 'accent' : 'default'}>
@@ -109,15 +114,63 @@ export function AppHeader() {
           ))}
           <Button
             label={t('landing.pro')}
+            variant="gold"
             onPress={() => {
               setMenuOpen(false);
               setProOpen(true);
             }}
           />
-          <Button label={t('landing.account')} variant="secondary" onPress={() => { setMenuOpen(false); router.push('/profile'); }} />
+          <Button
+            label={t('landing.account')}
+            variant="secondary"
+            onPress={() => {
+              setMenuOpen(false);
+              router.push('/profile');
+            }}
+          />
+          {team ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('tabs.profile')}
+              onPress={() => {
+                setMenuOpen(false);
+                router.push('/profile');
+              }}
+              style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+              <Helmet team={team} size={36} />
+              <AppText variant="body">{t('tabs.profile')}</AppText>
+            </Pressable>
+          ) : auth ? (
+            <Button
+              label={t('tabs.profile')}
+              variant="secondary"
+              onPress={() => {
+                setMenuOpen(false);
+                router.push('/profile');
+              }}
+            />
+          ) : (
+            <Button
+              label={t('landing.enter')}
+              onPress={() => {
+                setMenuOpen(false);
+                router.push('/welcome');
+              }}
+            />
+          )}
         </View>
       ) : null}
       <ProModal visible={proOpen} onClose={() => setProOpen(false)} />
+    </View>
+  );
+}
+
+function Hamburger({ color }: { color: string }) {
+  return (
+    <View style={{ width: 22, gap: 5 }} accessibilityElementsHidden>
+      {[0, 1, 2].map((line) => (
+        <View key={line} style={{ height: 2, borderRadius: 1, backgroundColor: color }} />
+      ))}
     </View>
   );
 }
