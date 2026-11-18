@@ -24,7 +24,7 @@ export function AppHeader() {
   const { colors } = useAppTheme();
   const { wide } = useBreakpoint();
   const insets = useSafeAreaInsets();
-  const { scrolled } = useHomeScroll();
+  const { scrolled, scrollToTop } = useHomeScroll();
   const reduced = useReducedMotion();
   const pathname = usePathname();
   const { auth } = useSession();
@@ -40,9 +40,14 @@ export function AppHeader() {
     { id: 'store', label: t('tabs.store'), href: '/store' },
   ];
 
-  function follow(item: Item) {
+  function go(href: '/' | '/analysis' | '/community' | '/store' | '/profile' | '/welcome') {
     setMenuOpen(false);
-    router.push(item.href);
+    scrollToTop();
+    router.push(href);
+  }
+
+  function follow(item: Item) {
+    go(item.href);
   }
 
   function active(item: Item) {
@@ -75,19 +80,19 @@ export function AppHeader() {
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
               <Button label={t('landing.pro')} variant="gold" onPress={() => setProOpen(true)} />
-              <Button label={t('landing.account')} variant="secondary" onPress={() => router.push('/profile')} />
+              <Button label={t('landing.account')} variant="secondary" onPress={() => go('/profile')} />
               {team ? (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={t('tabs.profile')}
-                  onPress={() => router.push('/profile')}
+                  onPress={() => go('/profile')}
                   style={{ minHeight: 44, justifyContent: 'center' }}>
                   <Helmet team={team} size={40} />
                 </Pressable>
               ) : auth ? (
-                <Button label={t('tabs.profile')} variant="secondary" onPress={() => router.push('/profile')} />
+                <Button label={t('tabs.profile')} variant="secondary" onPress={() => go('/profile')} />
               ) : (
-                <Button label={t('landing.enter')} onPress={() => router.push('/welcome')} />
+                <Button label={t('landing.enter')} onPress={() => go('/welcome')} />
               )}
             </View>
           </View>
@@ -124,7 +129,7 @@ export function AppHeader() {
             variant="secondary"
             onPress={() => {
               setMenuOpen(false);
-              router.push('/profile');
+              go('/profile');
             }}
           />
           {team ? (
@@ -133,7 +138,7 @@ export function AppHeader() {
               accessibilityLabel={t('tabs.profile')}
               onPress={() => {
                 setMenuOpen(false);
-                router.push('/profile');
+                go('/profile');
               }}
               style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
               <Helmet team={team} size={36} />
@@ -145,7 +150,7 @@ export function AppHeader() {
               variant="secondary"
               onPress={() => {
                 setMenuOpen(false);
-                router.push('/profile');
+                go('/profile');
               }}
             />
           ) : (
@@ -153,7 +158,7 @@ export function AppHeader() {
               label={t('landing.enter')}
               onPress={() => {
                 setMenuOpen(false);
-                router.push('/welcome');
+                go('/welcome');
               }}
             />
           )}

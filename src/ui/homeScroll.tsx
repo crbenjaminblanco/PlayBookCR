@@ -7,10 +7,13 @@ const HomeScrollContext = createContext<{
   scrollTo: (id: string) => boolean;
   scrolled: boolean;
   reportScroll: (y: number) => void;
+  registerScroller: (fn: (() => void) | null) => void;
+  scrollToTop: () => void;
 } | null>(null);
 
 export function HomeScrollProvider({ children }: { children: ReactNode }) {
   const current = useRef<ScrollFn | null>(null);
+  const scroller = useRef<(() => void) | null>(null);
   const scrolledRef = useRef(false);
   const [scrolled, setScrolled] = useState(false);
   const reportScroll = useCallback((y: number) => {
@@ -18,6 +21,14 @@ export function HomeScrollProvider({ children }: { children: ReactNode }) {
     if (scrolledRef.current === next) return;
     scrolledRef.current = next;
     setScrolled(next);
+  }, []);
+  const registerScroller = useCallback((fn: (() => void) | null) => {
+    scroller.current = fn;
+  }, []);
+  const scrollToTop = useCallback(() => {
+    scroller.current?.();
+    scrolledRef.current = false;
+    setScrolled(false);
   }, []);
   const value = useMemo(
     () => ({
@@ -31,8 +42,10 @@ export function HomeScrollProvider({ children }: { children: ReactNode }) {
         return true;
       },
       reportScroll,
+      registerScroller,
+      scrollToTop,
     }),
-    [reportScroll, scrolled],
+    [registerScroller, reportScroll, scrollToTop, scrolled],
   );
 
   return <HomeScrollContext.Provider value={value}>{children}</HomeScrollContext.Provider>;

@@ -1,5 +1,6 @@
-import { useEffect, type ReactNode } from 'react';
-import { Image, ScrollView, View, type ImageSourcePropType, type ViewProps } from 'react-native';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { Image, Platform, ScrollView, View, type ImageSourcePropType, type ScrollViewInstance, type ViewProps } from 'react-native';
+import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/src/theme/ThemeProvider';
@@ -18,11 +19,29 @@ export function Screen({ children, scroll = true, footer, center = false, backdr
   const { colors, name } = useAppTheme();
   const { contentMax, pad } = useBreakpoint();
   const insets = useSafeAreaInsets();
-  const { reportScroll } = useHomeScroll();
+  const { reportScroll, registerScroller } = useHomeScroll();
+  const pathname = usePathname();
+  const scroller = useRef<ScrollViewInstance | null>(null);
+
+  function toTop() {
+    scroller.current?.scrollTo({ y: 0, animated: false });
+    reportScroll(0);
+    if (Platform.OS === 'web') {
+      window.scrollTo(0, 0);
+      document.querySelectorAll('div').forEach((node) => {
+        if (node.scrollTop > 0) node.scrollTop = 0;
+      });
+    }
+  }
 
   useEffect(() => {
-    reportScroll(0);
-  }, [reportScroll]);
+    registerScroller(toTop);
+    return () => registerScroller(null);
+  });
+
+  useEffect(() => {
+    toTop();
+  }, [pathname]);
 
   const body = (
     <View style={{ width: '100%', maxWidth: contentMax, alignSelf: 'center', paddingHorizontal: pad, gap: space.xxl }}>
@@ -41,6 +60,7 @@ export function Screen({ children, scroll = true, footer, center = false, backdr
       ) : null}
       {scroll ? (
         <ScrollView
+          ref={scroller as never}
           style={{ flex: 1 }}
           keyboardShouldPersistTaps="handled"
           onScroll={(event) => reportScroll(event.nativeEvent.contentOffset.y)}
