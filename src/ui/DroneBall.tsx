@@ -32,6 +32,7 @@ function dot(index: number, time: number) {
 function paint(ctx: CanvasRenderingContext2D, width: number, height: number, time: number, color: string) {
   ctx.clearRect(0, 0, width, height);
   const scale = Math.min(width, height) * 0.42;
+  const xStretch = width > height ? 2.35 : 1.7;
   const cx = width * 0.5;
   const cy = height * 0.48;
   for (let index = 0; index < COUNT; index += 1) {
@@ -39,7 +40,7 @@ function paint(ctx: CanvasRenderingContext2D, width: number, height: number, tim
     ctx.beginPath();
     ctx.fillStyle = color;
     ctx.globalAlpha = point.opacity;
-    ctx.arc(cx + point.x * scale * 1.7, cy + point.y * scale * 0.85, point.size, 0, Math.PI * 2);
+    ctx.arc(cx + point.x * scale * xStretch, cy + point.y * scale * 0.85, point.size, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
@@ -61,25 +62,28 @@ export function DroneBall({ height }: { height: number }) {
     canvas.style.display = 'block';
     node.appendChild(canvas);
     const ctx = canvas.getContext('2d');
-    let frame = 0;
     let raf = 0;
-    const draw = () => {
+    const started = performance.now();
+    let sized = '';
+    const draw = (now: number) => {
       const rect = node.getBoundingClientRect();
-      const ratio = window.devicePixelRatio || 1;
       const width = Math.max(1, rect.width);
       const nextHeight = Math.max(1, rect.height);
-      if (canvas.width !== Math.floor(width * ratio) || canvas.height !== Math.floor(nextHeight * ratio)) {
+      const ratio = Math.min(window.devicePixelRatio || 1, width < 800 ? 1.25 : 2);
+      const key = `${Math.floor(width)}x${Math.floor(nextHeight)}@${ratio}`;
+      if (key !== sized) {
+        sized = key;
         canvas.width = Math.floor(width * ratio);
         canvas.height = Math.floor(nextHeight * ratio);
       }
       if (ctx) {
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-        paint(ctx, width, nextHeight, reduced ? 30 : frame, color);
+        const frames = ((now - started) / 1000) * 60 * (width < 800 ? 1.75 : 1);
+        paint(ctx, width, nextHeight, reduced ? 30 : frames, color);
       }
-      frame += 1;
       if (!reduced) raf = requestAnimationFrame(draw);
     };
-    draw();
+    raf = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(raf);
       canvas.remove();

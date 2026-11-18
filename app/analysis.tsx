@@ -193,6 +193,21 @@ function SideFacts({ side }: { side: WeekSide }) {
         </AppText>
         <StarRating value={teamStars(side)} label={team?.abbr ?? ''} />
       </View>
+      {side.showPhase === false ? (
+        side.pointsFor != null && side.pointsAgainst != null ? (
+          <>
+            <AppText variant="small" tone="muted">
+              {t('analysis.pointsFor')}
+            </AppText>
+            <AppText variant="small">{side.pointsFor}</AppText>
+            <AppText variant="small" tone="muted">
+              {t('analysis.pointsAgainst')}
+            </AppText>
+            <AppText variant="small">{side.pointsAgainst}</AppText>
+          </>
+        ) : null
+      ) : (
+        <>
       {side.recent ? (
         <AppText variant="small" tone="muted">
           {t('analysis.form')}
@@ -207,6 +222,8 @@ function SideFacts({ side }: { side: WeekSide }) {
         {t('analysis.defense')}
       </AppText>
       <RankLine ground={side.defense.rush} air={side.defense.pass} />
+        </>
+      )}
       <AppText variant="small" tone="muted">
         {t('analysis.noInjuries')}
       </AppText>

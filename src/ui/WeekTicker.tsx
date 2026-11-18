@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 
-import { weekGames } from '@/src/data/week';
+import { weekResults } from '@/src/data/week';
 import { teamById } from '@/src/data/teams';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
 import { fontFamily, space } from '@/src/theme/tokens';
@@ -13,12 +13,11 @@ export function WeekTicker() {
   const reduced = useReducedMotion();
   const [span, setSpan] = useState(0);
   const offset = useSharedValue(0);
-  const line = weekGames
+  const line = weekResults
     .map((game) => {
-      const away = teamById(game.away.teamId)?.abbr ?? '';
-      const home = teamById(game.home.teamId)?.abbr ?? '';
-      const score = game.awayScore != null && game.homeScore != null ? `${game.awayScore}–${game.homeScore}` : 'vs';
-      return `${away}  ${score}  ${home}`;
+      const away = teamById(game.awayId)?.abbr ?? '';
+      const home = teamById(game.homeId)?.abbr ?? '';
+      return `${away}  ${game.awayScore}–${game.homeScore}  ${home}`;
     })
     .join('     ·     ');
 

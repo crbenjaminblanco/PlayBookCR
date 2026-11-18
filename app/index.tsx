@@ -29,7 +29,7 @@ export default function HomeScreen() {
         <View style={{ flexDirection: wide ? 'row' : 'column', alignItems: 'stretch', gap: wide ? 48 : space.lg }}>
           <View style={{ flex: 1, justifyContent: 'flex-end', gap: space.lg, minWidth: 0 }}>
             <AppText variant="kicker" tone="muted">
-              {t('analysis.kicker')}
+              {t('landing.resultsKicker')}
             </AppText>
             <AppText variant="display">{t('landing.heroTitle')}</AppText>
             <AppText variant="body" tone="muted" style={{ maxWidth: 520 }}>
