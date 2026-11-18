@@ -1,7 +1,9 @@
 import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { MotiView } from 'moti';
 import { useTranslation } from 'react-i18next';
+import { useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { teamById } from '@/src/data/teams';
@@ -11,24 +13,29 @@ import { fontFamily, space } from '@/src/theme/tokens';
 import { Brand } from '@/src/ui/Brand';
 import { Button } from '@/src/ui/Button';
 import { Helmet } from '@/src/ui/Helmet';
+import { useHomeScroll } from '@/src/ui/homeScroll';
 import { ProModal } from '@/src/ui/ProModal';
 import { AppText } from '@/src/ui/Text';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
-type Item = { id: string; label: string; href: '/' | '/community' | '/store' };
+type Item = { id: string; label: string; href: '/' | '/analysis' | '/community' | '/store' };
 
 export function AppHeader() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const { regular } = useBreakpoint();
+  const { wide } = useBreakpoint();
   const insets = useSafeAreaInsets();
+  const { scrolled } = useHomeScroll();
+  const reduced = useReducedMotion();
   const pathname = usePathname();
   const { auth } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const [proOpen, setProOpen] = useState(false);
+  const compact = scrolled && !menuOpen;
   const team = teamById(auth?.teamId);
 
   const items: Item[] = [
     { id: 'home', label: t('landing.navHome'), href: '/' },
+    { id: 'games', label: t('landing.navGames'), href: '/analysis' },
     { id: 'community', label: t('landing.navCommunity'), href: '/community' },
     { id: 'store', label: t('tabs.store'), href: '/store' },
   ];
@@ -43,23 +50,24 @@ export function AppHeader() {
   }
 
   return (
-    <View
+    <MotiView
+      animate={{ paddingBottom: compact ? 4 : 12 }}
+      transition={{ type: 'timing', duration: reduced ? 0 : 220 } as never}
       style={{
-        paddingTop: insets.top + space.sm,
-        paddingBottom: space.sm,
-        paddingHorizontal: regular ? 32 : 16,
+        paddingTop: insets.top + (compact ? 2 : space.sm),
+        paddingHorizontal: wide ? 48 : 16,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
-        backgroundColor: colors.surface,
+        backgroundColor: colors.bg,
         zIndex: 40,
         gap: space.sm,
       }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('landing.navHome')} onPress={() => follow(items[0])} style={{ flex: 1 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('landing.navHome')} onPress={() => follow(items[0])}>
           <Brand />
         </Pressable>
-        {regular ? (
-          <>
+        {wide ? (
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: space.md }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg }}>
               {items.map((item) => (
                 <NavLink key={item.id} label={item.label} selected={active(item)} onPress={() => follow(item)} />
@@ -82,7 +90,7 @@ export function AppHeader() {
                 <Button label={t('landing.enter')} onPress={() => router.push('/welcome')} />
               )}
             </View>
-          </>
+          </View>
         ) : (
           <Pressable
             accessibilityRole="button"
@@ -94,7 +102,7 @@ export function AppHeader() {
           </Pressable>
         )}
       </View>
-      {menuOpen && !regular ? (
+      {menuOpen && !wide ? (
         <View style={{ gap: space.sm }}>
           {items.map((item) => (
             <Pressable key={item.id} accessibilityRole="button" onPress={() => follow(item)} style={{ minHeight: 44, justifyContent: 'center' }}>
@@ -152,7 +160,7 @@ export function AppHeader() {
         </View>
       ) : null}
       <ProModal visible={proOpen} onClose={() => setProOpen(false)} />
-    </View>
+    </MotiView>
   );
 }
 
@@ -167,9 +175,10 @@ function Hamburger({ color }: { color: string }) {
 }
 
 function NavLink({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  const { colors } = useAppTheme();
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={{ minHeight: 44, justifyContent: 'center' }}>
-      <AppText variant="small" tone={selected ? 'accent' : 'default'} style={{ fontFamily: selected ? fontFamily.semibold : fontFamily.medium }}>
+    <Pressable accessibilityRole="button" onPress={onPress} style={{ minHeight: 44, justifyContent: 'center', borderBottomWidth: selected ? 1 : 0, borderBottomColor: colors.text }}>
+      <AppText variant="small" tone={selected ? 'accent' : 'default'} style={{ fontFamily: selected ? fontFamily.semibold : fontFamily.medium, letterSpacing: 0.8 }}>
         {label}
       </AppText>
     </Pressable>

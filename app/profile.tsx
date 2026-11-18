@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -8,8 +9,8 @@ import { useAppTheme } from '@/src/theme/ThemeProvider';
 import type { ThemeName } from '@/src/theme/colors';
 import { fontFamily, hitSize, radius, space } from '@/src/theme/tokens';
 import { Button } from '@/src/ui/Button';
-import { Card } from '@/src/ui/Card';
 import { Screen } from '@/src/ui/Screen';
+import { Stage } from '@/src/ui/Stage';
 import { TeamMark } from '@/src/ui/TeamMark';
 import { AppText } from '@/src/ui/Text';
 
@@ -25,40 +26,40 @@ export default function ProfileScreen() {
 
   return (
     <Screen>
-      <AppText variant="title">{t('profile.title')}</AppText>
-      {!auth ? (
-        <Card>
-          <AppText variant="body" tone="muted">
-            {t('welcome.demoHint')}
-          </AppText>
-          <Button label={t('landing.enter')} onPress={() => router.push('/welcome')} />
-        </Card>
-      ) : (
-        <>
-          <Card>
-            <AppText variant="small" tone="muted">
+      <Stage title={t('profile.title')} fill={false} />
+      <Band>
+        {!auth ? (
+          <>
+            <AppText variant="body" tone="muted">
+              {t('welcome.demoHint')}
+            </AppText>
+            <Button label={t('landing.enter')} onPress={() => router.push('/welcome')} />
+          </>
+        ) : (
+          <>
+            <AppText variant="kicker" tone="accent">
               {auth.mode === 'account' ? t('profile.account') : t('profile.guest')}
             </AppText>
-            <AppText variant="heading">{auth.email ?? t('profile.guest')}</AppText>
-          </Card>
-
-          <Card>
-            <AppText variant="small" tone="muted">
-              {t('profile.team')}
-            </AppText>
-            {team ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-                <TeamMark team={team} size={40} />
-                <AppText variant="heading">{teamLabel(team)}</AppText>
-              </View>
-            ) : null}
-            <Button label={t('profile.changeTeam')} variant="secondary" onPress={() => router.push('/team')} />
-          </Card>
-        </>
-      )}
-
-      <Card>
-        <AppText variant="heading">{t('profile.language')}</AppText>
+            <AppText variant="title">{auth.email ?? t('profile.guest')}</AppText>
+          </>
+        )}
+      </Band>
+      {team ? (
+        <Band>
+          <AppText variant="kicker" tone="accent">
+            {t('profile.team')}
+          </AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg }}>
+            <TeamMark team={team} size={64} />
+            <AppText variant="title">{teamLabel(team)}</AppText>
+          </View>
+          <Button label={t('profile.changeTeam')} variant="secondary" onPress={() => router.push('/team')} />
+        </Band>
+      ) : null}
+      <Band>
+        <AppText variant="kicker" tone="accent">
+          {t('profile.language')}
+        </AppText>
         <ChoiceRow
           options={[
             { id: 'es' as Language, label: 'Español' },
@@ -67,7 +68,9 @@ export default function ProfileScreen() {
           selected={prefs.language}
           onSelect={setLanguage}
         />
-        <AppText variant="heading">{t('profile.theme')}</AppText>
+        <AppText variant="kicker" tone="accent">
+          {t('profile.theme')}
+        </AppText>
         <ChoiceRow
           options={[
             { id: 'dark' as ThemeName, label: t('profile.themeDark') },
@@ -76,11 +79,15 @@ export default function ProfileScreen() {
           selected={prefs.theme}
           onSelect={setTheme}
         />
-      </Card>
-
-      {auth ? <Button label={t('profile.signOut')} variant="secondary" onPress={leave} /> : null}
+        {auth ? <Button label={t('profile.signOut')} variant="secondary" onPress={leave} /> : null}
+      </Band>
     </Screen>
   );
+}
+
+function Band({ children }: { children: ReactNode }) {
+  const { colors } = useAppTheme();
+  return <View style={{ gap: space.lg, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.xl }}>{children}</View>;
 }
 
 function ChoiceRow<T extends string>({

@@ -26,7 +26,16 @@ export const fontFamily = {
   medium: 'Inter_500Medium',
   semibold: 'Inter_600SemiBold',
   bold: 'Inter_700Bold',
+  display: 'Fraunces_600SemiBold',
   stat: 'BarlowSemiCondensed_700Bold',
+} as const;
+
+export const lift = {
+  shadowColor: '#000000',
+  shadowOffset: { width: 0, height: 10 },
+  shadowOpacity: 0.32,
+  shadowRadius: 18,
+  elevation: 8,
 } as const;
 
 export const breakpoint = {
@@ -35,6 +44,5 @@ export const breakpoint = {
 } as const;
 
 export const layout = {
-  compactMax: 480,
-  regularMax: 960,
+  wideMax: 1280,
 } as const;

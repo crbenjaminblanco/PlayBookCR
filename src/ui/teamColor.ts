@@ -37,3 +37,11 @@ export function readableTeamColor(hex: string) {
   const lightness = Math.min(0.62, Math.max(0.4, l));
   return hslToHex(h, s, lightness);
 }
+
+/** Saturated province fill. Darker on paper, brighter on black, so neighbors separate. */
+export function mapTeamColor(hex: string, theme: 'light' | 'dark') {
+  const { h, s } = rgbToHsl(channel(hex, 0), channel(hex, 1), channel(hex, 2));
+  const saturation = Math.max(0.78, Math.min(1, s || 0.85));
+  const lightness = theme === 'light' ? 0.34 : 0.56;
+  return hslToHex(h, saturation, lightness);
+}

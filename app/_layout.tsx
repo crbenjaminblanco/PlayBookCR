@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { BarlowSemiCondensed_700Bold } from '@expo-google-fonts/barlow-semi-condensed';
+import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 
 import '@/src/i18n';
@@ -26,6 +27,7 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
     BarlowSemiCondensed_700Bold,
+    Fraunces_600SemiBold,
   });
 
   useEffect(() => {
@@ -77,7 +79,7 @@ function ThemedStack() {
       'Lectura de la jornada de la NFL con IA, hecha en Costa Rica. Vea la afición por provincia y el análisis de la semana.',
       'name',
     );
-    setMeta('theme-color', '#030712', 'name');
+    setMeta('theme-color', '#000000', 'name');
     setMeta('og:title', 'PlayBookCR · La jornada de la NFL leída con IA', 'property');
     setMeta(
       'og:description',
@@ -86,15 +88,29 @@ function ThemedStack() {
     );
     setMeta('og:locale', 'es_CR', 'property');
     setMeta('og:type', 'website', 'property');
-    const favicon = require('../assets/images/favicon.png') as string;
-    let icon = document.querySelector('link[rel="icon"]');
-    if (!icon) {
-      icon = document.createElement('link');
-      icon.setAttribute('rel', 'icon');
-      document.head.appendChild(icon);
+    let favicon = document.querySelector('link[rel="icon"]');
+    if (!favicon) {
+      favicon = document.createElement('link');
+      favicon.setAttribute('rel', 'icon');
+      document.head.appendChild(favicon);
     }
-    icon.setAttribute('type', 'image/png');
-    icon.setAttribute('href', favicon);
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    if (ctx && favicon) {
+      ctx.fillStyle = '#111111';
+      ctx.beginPath();
+      ctx.arc(32, 32, 32, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#F5F5F5';
+      ctx.font = '700 26px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('PB', 32, 34);
+      favicon.setAttribute('type', 'image/png');
+      favicon.setAttribute('href', canvas.toDataURL('image/png'));
+    }
   }, []);
   return (
     <PaperBridge>

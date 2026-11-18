@@ -13,7 +13,7 @@ type Props = TextProps & {
 
 export function AppText({ variant = 'body', tone = 'default', style, ...rest }: Props) {
   const { colors } = useAppTheme();
-  const { wide } = useBreakpoint();
+  const { wide, regular } = useBreakpoint();
 
   const variantStyle: Record<Variant, TextStyle> = {
     kicker: {
@@ -23,14 +23,16 @@ export function AppText({ variant = 'body', tone = 'default', style, ...rest }: 
       textTransform: 'uppercase',
     },
     display: {
-      fontFamily: fontFamily.bold,
-      fontSize: wide ? 48 : 36,
-      lineHeight: wide ? 52 : 40,
+      fontFamily: fontFamily.display,
+      fontSize: wide ? 68 : regular ? 48 : 36,
+      lineHeight: wide ? 72 : regular ? 52 : 40,
+      letterSpacing: wide ? -1.2 : -0.4,
     },
     title: {
-      fontFamily: fontFamily.bold,
-      fontSize: wide ? 32 : 28,
-      lineHeight: wide ? 38 : 34,
+      fontFamily: fontFamily.display,
+      fontSize: wide ? 44 : regular ? 36 : 30,
+      lineHeight: wide ? 50 : regular ? 42 : 36,
+      letterSpacing: -0.4,
     },
     heading: {
       fontFamily: fontFamily.bold,

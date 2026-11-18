@@ -7,8 +7,8 @@ import { useSession } from '@/src/session/SessionProvider';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
 import { fontFamily, space } from '@/src/theme/tokens';
 import { Button } from '@/src/ui/Button';
-import { Card } from '@/src/ui/Card';
 import { Screen } from '@/src/ui/Screen';
+import { Stage } from '@/src/ui/Stage';
 import { AppText } from '@/src/ui/Text';
 import { TextField } from '@/src/ui/TextField';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
@@ -47,11 +47,7 @@ export default function WelcomeScreen() {
   }
 
   const story = (
-    <View style={{ gap: space.lg, flex: 1 }}>
-      <AppText variant="kicker" tone="accent">
-        {t('welcome.kicker')}
-      </AppText>
-      <AppText variant="display">{t('welcome.title')}</AppText>
+    <Stage kicker={t('welcome.kicker')} title={t('welcome.title')} fill={false}>
       <AppText variant="body" tone="muted">
         {t('welcome.subtitle')}
       </AppText>
@@ -63,11 +59,11 @@ export default function WelcomeScreen() {
           </View>
         ))}
       </View>
-    </View>
+    </Stage>
   );
 
   const form = (
-    <Card style={{ flex: wide ? 0.9 : undefined, padding: space.xl }}>
+    <View style={{ flex: wide ? 0.8 : undefined, gap: space.lg, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.xl, justifyContent: 'flex-end' }}>
       <TextField
         label={t('welcome.email')}
         value={email}
@@ -84,7 +80,7 @@ export default function WelcomeScreen() {
       <AppText variant="small" tone="muted" style={{ fontFamily: fontFamily.regular }}>
         {t('welcome.demoHint')}
       </AppText>
-    </Card>
+    </View>
   );
 
   return (

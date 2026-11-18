@@ -9,6 +9,7 @@ import { useAppTheme } from '@/src/theme/ThemeProvider';
 import { fontFamily, hitSize, radius, space } from '@/src/theme/tokens';
 import { Button } from '@/src/ui/Button';
 import { Screen } from '@/src/ui/Screen';
+import { Stage } from '@/src/ui/Stage';
 import { TeamMark } from '@/src/ui/TeamMark';
 import { AppText } from '@/src/ui/Text';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
@@ -39,12 +40,11 @@ export default function TeamScreen() {
       footer={
         <Button label={t('common.continue')} disabled={!selected} onPress={confirm} />
       }>
-      <View style={{ gap: space.sm }}>
-        <AppText variant="title">{auth.teamId ? t('team.changeTitle') : t('team.title')}</AppText>
-        <AppText variant="body" tone="muted">
+      <Stage title={auth.teamId ? t('team.changeTitle') : t('team.title')} fill={false}>
+        <AppText variant="body" tone="muted" style={{ maxWidth: 640 }}>
           {t('team.subtitle')}
         </AppText>
-      </View>
+      </Stage>
       <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
         {filters.map((item) => {
           const active = item === filter;
@@ -86,16 +86,15 @@ export default function TeamScreen() {
               onPress={() => setSelected(team.id)}
               style={{
                 width: basis,
-                minHeight: 88,
-                borderRadius: radius.card,
-                borderWidth: active ? 2 : 1,
-                borderColor: active ? colors.accent : colors.border,
-                backgroundColor: colors.surface,
-                padding: space.md,
+                minHeight: 132,
+                borderTopWidth: 1,
+                borderTopColor: active ? colors.accent : colors.border,
+                backgroundColor: 'transparent',
+                paddingVertical: space.lg,
                 gap: space.sm,
-                justifyContent: 'center',
+                justifyContent: 'flex-end',
               }}>
-              <TeamMark team={team} />
+              <TeamMark team={team} size={52} />
               <AppText variant="small" numberOfLines={1} style={{ fontFamily: fontFamily.semibold }}>
                 {team.name}
               </AppText>

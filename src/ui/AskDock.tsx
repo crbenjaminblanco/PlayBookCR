@@ -10,7 +10,6 @@ import { useTranslation } from 'react-i18next';
 import { streamGemini, type GeminiTurn } from '@/src/ai/gemini';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
 import { fontFamily, hitSize, space } from '@/src/theme/tokens';
-import { Card } from '@/src/ui/Card';
 import { AppText } from '@/src/ui/Text';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
 
@@ -195,11 +194,18 @@ function AskDock() {
         <View
           style={{
             position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-            bottom: 88,
+            top: 0,
+            right: 0,
+            bottom: 0,
             zIndex: 80,
-            ...(wide ? { right: 16, width: 420 } : { left: 16, right: 16 }),
+            width: wide ? 480 : '100%',
+            height: '100%',
+            backgroundColor: colors.bg,
+            borderLeftWidth: 1,
+            borderLeftColor: colors.border,
+            padding: space.lg,
+            gap: space.md,
           }}>
-          <Card>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flex: 1 }}>
                 <SymbolView name={{ ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' }} tintColor={colors.accent} size={20} />
@@ -212,7 +218,7 @@ function AskDock() {
             <AppText variant="small" tone="muted">
               {t('analysis.chatHint')}
             </AppText>
-            <ScrollView ref={threadRef} style={{ maxHeight: 480 }} onContentSizeChange={followThread} contentContainerStyle={{ gap: space.md }}>
+            <ScrollView ref={threadRef} style={{ flex: 1 }} onContentSizeChange={followThread} contentContainerStyle={{ gap: space.md }}>
               {turns.map((turn, index) => {
                 const mine = turn.role === 'user';
                 const waiting = !mine && !turn.text && busy;
@@ -304,7 +310,6 @@ function AskDock() {
                 onPress={send}
               />
             </View>
-          </Card>
         </View>
       ) : null}
       <View

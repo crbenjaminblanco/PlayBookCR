@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { leadingShare, teamFans, type ProvinceFanbase, type ProvinceId } from '@/src/data/provinces';
 import { teamById } from '@/src/data/teams';
 import { mapViewBox, provincePaths } from '@/src/data/mapPaths';
-import { readableTeamColor } from '@/src/ui/teamColor';
+import { mapTeamColor } from '@/src/ui/teamColor';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
 import { hitSize, radius, space } from '@/src/theme/tokens';
 import { ShareList } from '@/src/ui/ShareList';
@@ -50,7 +50,7 @@ export function CostaRicaMap({
   teamId = null,
 }: Props) {
   const { t } = useTranslation();
-  const { colors } = useAppTheme();
+  const { colors, name } = useAppTheme();
   const height = width * (mapViewBox.height / mapViewBox.width);
   const { width: screenW, height: screenH } = useWindowDimensions();
   const hostRef = useRef<Measurable | null>(null);
@@ -58,7 +58,7 @@ export function CostaRicaMap({
 
   const byId = useMemo(() => new Map(provinces.map((province) => [province.id, province])), [provinces]);
   const filterTeam = teamById(teamId);
-  const filterColor = filterTeam ? readableTeamColor(filterTeam.color) : null;
+  const filterColor = filterTeam ? mapTeamColor(filterTeam.color, name) : null;
   const peak = useMemo(() => {
     if (!teamId) return 1;
     return Math.max(...provinces.map((province) => teamFans(province, teamId)), 1);
@@ -96,8 +96,8 @@ export function CostaRicaMap({
           const province = byId.get(shape.id);
           const leader = province ? teamById(leadingShare(province).teamId) : undefined;
           const fans = province ? teamFans(province, teamId ?? null) : 0;
-          const fill = filterColor ?? (leader ? readableTeamColor(leader.color) : colors.surfaceElevated);
-          const fillOpacity = filterColor ? (fans === 0 ? 0.18 : 0.4 + 0.6 * (fans / peak)) : 1;
+          const fill = filterColor ?? (leader ? mapTeamColor(leader.color, name) : name === 'dark' ? '#2A2A2A' : '#C8C4BC');
+          const fillOpacity = filterColor ? (fans === 0 ? 0.35 : 0.62 + 0.38 * (fans / peak)) : 1;
           const active = shape.id === openId || shape.id === selectedId;
           const handlers =
             Platform.OS === 'web'
@@ -120,8 +120,8 @@ export function CostaRicaMap({
               d={shape.d}
               fill={fill}
               fillOpacity={fillOpacity}
-              stroke={active ? colors.text : 'rgba(244,247,251,0.55)'}
-              strokeWidth={active ? 2.6 : 1.4}
+              stroke={active ? colors.text : name === 'dark' ? '#050505' : '#F4F1EA'}
+              strokeWidth={active ? 2.8 : 2.2}
               accessibilityLabel={shape.id}
               {...handlers}
             />
@@ -137,11 +137,11 @@ export function CostaRicaMap({
             top: Platform.OS === 'web' ? panelTop : 8,
             width: Platform.OS === 'web' ? panelWidth : width - 16,
             maxHeight: panelMaxHeight,
-            backgroundColor: colors.surface,
+            backgroundColor: name === 'dark' ? '#111111' : '#FFFFFF',
             borderRadius: radius.card,
             borderWidth: 1,
             borderColor: colors.borderStrong,
-            padding: space.md,
+            padding: space.lg,
             gap: space.sm,
             boxShadow: '0 16px 40px rgba(0,0,0,0.35)',
           }}>

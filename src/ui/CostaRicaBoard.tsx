@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { CostaRicaMap } from '@/src/components/CostaRicaMap';
@@ -8,9 +8,7 @@ import { teamById, teamLabel, teams } from '@/src/data/teams';
 import { useSession } from '@/src/session/SessionProvider';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
 import { fontFamily, radius, space } from '@/src/theme/tokens';
-import { Card } from '@/src/ui/Card';
 import { FanCount } from '@/src/ui/FanCount';
-import { Helmet } from '@/src/ui/Helmet';
 import { readableTeamColor } from '@/src/ui/teamColor';
 import { StateMessage } from '@/src/ui/StateMessage';
 import { Select } from '@/src/ui/Select';
@@ -18,7 +16,7 @@ import { AppText } from '@/src/ui/Text';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
 import { useDemoLoad } from '@/src/ui/useDemoLoad';
 
-export function CostaRicaBoard() {
+export function CostaRicaBoard({ embedded = false, showHeading = true }: { embedded?: boolean; showHeading?: boolean }) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { auth } = useSession();
@@ -47,9 +45,9 @@ export function CostaRicaBoard() {
       .sort((left, right) => right.fans - left.fans || left.team.city.localeCompare(right.team.city));
   }, []);
   const teamPreview = 8;
-  const stackedTeams = !wide && !showAllTeams ? teamRows.slice(0, teamPreview) : teamRows;
   const teamMax = teamRows[0]?.fans || 1;
   const activeFilter = teamById(teamFilter);
+  const stackedTeams = showAllTeams || activeFilter ? teamRows : teamRows.slice(0, teamPreview);
   const barColor = activeFilter ? readableTeamColor(activeFilter.color) : colors.accent;
   const teamList = activeFilter
     ? provinceRows.map((row) => (
@@ -69,8 +67,7 @@ export function CostaRicaBoard() {
         <View key={row.team.id} style={{ gap: space.xs }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }}>
             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-              <Helmet team={row.team} size={22} />
-              <AppText variant="small" style={{ flex: 1, fontFamily: fontFamily.medium }}>
+              <AppText variant="small" style={{ flex: 1, fontFamily: fontFamily.display }}>
                 {teamLabel(row.team)}
               </AppText>
             </View>
@@ -83,7 +80,8 @@ export function CostaRicaBoard() {
       ));
 
   return (
-    <View style={{ width: '100%', maxWidth: 1120, alignSelf: 'center', paddingHorizontal: regular ? 32 : 16, gap: space.lg, paddingTop: space.xl, zIndex: openId ? 30 : 0 }}>
+    <View style={{ width: '100%', maxWidth: embedded ? undefined : 1120, alignSelf: 'center', paddingHorizontal: embedded ? 0 : regular ? 32 : 16, gap: space.lg, paddingTop: embedded ? 0 : space.xl, zIndex: openId ? 30 : 0 }}>
+      {showHeading ? (
       <View style={{ gap: space.sm, alignItems: 'center' }}>
         <AppText variant="kicker" tone="accent">
           {t('home.kicker')}
@@ -95,13 +93,14 @@ export function CostaRicaBoard() {
           {t('home.subtitle')}
         </AppText>
       </View>
+      ) : null}
       {status === 'loading' ? <StateMessage variant="loading" title={t('common.loading')} /> : null}
       {status === 'error' ? <StateMessage variant="error" title={t('common.error')} actionLabel={t('common.retry')} onAction={retry} /> : null}
       {status === 'ready' && provinces.length > 0 ? (
         <View style={{ position: 'relative', gap: space.xxl }}>
           {openId ? null : (
-            <View style={{ gap: space.sm, maxWidth: 360, width: '100%', alignSelf: 'center', zIndex: 36 }}>
-              <AppText variant="small" tone="muted" style={{ fontFamily: fontFamily.semibold, textAlign: 'center' }}>
+            <View style={{ gap: space.sm, width: '100%', alignSelf: 'stretch', alignItems: 'stretch', zIndex: 36 }}>
+              <AppText variant="small" tone="muted" style={{ fontFamily: fontFamily.semibold }}>
                 {t('home.filter')}
               </AppText>
               <Select
@@ -115,9 +114,9 @@ export function CostaRicaBoard() {
           {openId ? (
             <Pressable accessibilityLabel={t('home.close')} onPress={() => setOpenId(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20 }} />
           ) : null}
-          <View style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? space.xxxl : space.lg, alignItems: wide ? 'stretch' : 'flex-start', justifyContent: 'center', width: '100%' }}>
+          <View style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? space.xxxl : space.xl, alignItems: 'stretch', width: '100%' }}>
             <View
-              style={{ width: wide ? 420 : '100%', maxWidth: wide ? 420 : 320, alignSelf: wide ? 'flex-start' : 'center' }}
+              style={{ width: wide ? 560 : '100%', maxWidth: wide ? 560 : undefined, alignSelf: 'stretch' }}
               onLayout={(event) => {
                 setMapWidth(event.nativeEvent.layout.width);
                 setMapHeight(event.nativeEvent.layout.height);
@@ -134,29 +133,21 @@ export function CostaRicaBoard() {
                 teamId={teamFilter}
               />
             </View>
-            <View style={{ width: wide ? 420 : '100%', maxWidth: wide ? 420 : 360, height: wide ? mapHeight : undefined, alignSelf: wide ? 'flex-end' : 'center' }}>
-              <Card style={{ flex: 1, padding: space.md, gap: space.sm, height: wide ? '100%' : undefined, overflow: wide ? 'hidden' : 'visible' }}>
-                <AppText variant="small" style={{ fontFamily: fontFamily.bold, fontSize: 16, lineHeight: 20 }}>
+            <View style={{ flex: 1, width: '100%', alignSelf: 'stretch', gap: space.md }}>
+                <AppText variant="kicker" tone="muted">
                   {t('home.fansIn', { place: t('home.country') })}
                 </AppText>
-                <FanCount fans={provinceTotal} size={18} />
-                {wide ? (
-                  <ScrollView style={{ flex: 1, minHeight: 0 }} contentContainerStyle={{ gap: space.sm }}>
-                    {teamList}
-                  </ScrollView>
-                ) : (
-                  <View style={{ gap: space.sm }}>
-                    {teamList}
-                    {!activeFilter && teamRows.length > teamPreview ? (
-                      <Pressable accessibilityRole="button" onPress={() => setShowAllTeams((current) => !current)} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
-                        <AppText variant="small" tone="accent" style={{ fontFamily: fontFamily.semibold }}>
-                          {showAllTeams ? t('home.showLess') : t('home.showMore')}
-                        </AppText>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                )}
-              </Card>
+                <FanCount fans={provinceTotal} size={28} />
+                <View style={{ gap: space.sm }}>
+                  {teamList}
+                  {!activeFilter && teamRows.length > teamPreview ? (
+                    <Pressable accessibilityRole="button" onPress={() => setShowAllTeams((current) => !current)} style={{ minHeight: 44, alignItems: 'flex-start', justifyContent: 'center' }}>
+                      <AppText variant="small" style={{ fontFamily: fontFamily.semibold }}>
+                        {showAllTeams ? t('home.showLess') : t('home.showMore')}
+                      </AppText>
+                    </Pressable>
+                  ) : null}
+                </View>
             </View>
           </View>
         </View>

@@ -12,8 +12,8 @@ export function useBreakpoint() {
     wide,
     regular,
     compact: !regular,
-    contentMax: regular ? layout.regularMax : layout.compactMax,
-    pad: regular ? 32 : 16,
+    contentMax: wide ? layout.wideMax : width,
+    pad: wide ? 48 : regular ? 28 : 16,
     teamColumns: wide ? 4 : regular ? 3 : 2,
     storeColumns: wide ? 3 : regular ? 2 : 1,
   };

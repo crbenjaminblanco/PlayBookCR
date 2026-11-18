@@ -1,25 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { FontAwesome6 } from '@expo/vector-icons';
-import { Linking, Platform, Pressable, ScrollView, TextInput, View, type ScrollViewInstance } from 'react-native';
+import { Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { communityPosts } from '@/src/data/community';
-import { teamById } from '@/src/data/teams';
-import { useSession } from '@/src/session/SessionProvider';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
-import { fontFamily, hitSize, radius, space } from '@/src/theme/tokens';
+import { fontFamily, hitSize, space } from '@/src/theme/tokens';
 import { CostaRicaBoard } from '@/src/ui/CostaRicaBoard';
-import { Helmet, InitialsBadge } from '@/src/ui/Helmet';
-import { Card } from '@/src/ui/Card';
+import { Screen } from '@/src/ui/Screen';
+import { Stage } from '@/src/ui/Stage';
 import { AppText } from '@/src/ui/Text';
-import { useBreakpoint } from '@/src/ui/useBreakpoint';
 
 type ChatMessage = {
   id: string;
   author: string;
   place?: string;
-  teamId?: string;
   body: string;
   mine?: boolean;
   time: string;
@@ -42,27 +37,23 @@ function clock(language: string) {
 
 export default function CommunityScreen() {
   const { t, i18n } = useTranslation();
-  const { colors, name: themeName } = useAppTheme();
-  const { auth } = useSession();
-  const { wide } = useBreakpoint();
-  const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollViewInstance>(null);
+  const { colors, name } = useAppTheme();
   const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const replyIndex = useRef(0);
-  const favorite = teamById(auth?.teamId);
-  const [open, setOpen] = useState(false);
+  const threadScroll = useRef<{ scrollToEnd: (options?: { animated?: boolean }) => void } | null>(null);
   const [draft, setDraft] = useState('');
+  const [threadOpen, setThreadOpen] = useState(false);
   const [extra, setExtra] = useState<ChatMessage[]>([]);
   const samples: ChatMessage[] = communityPosts.map((post, index) => ({
     id: post.id,
     author: post.author,
     place: post.place,
-    teamId: post.teamId,
     body: t(post.bodyKey),
     time: `${18}:${String(4 + index * 7).padStart(2, '0')}`,
   }));
   const messages = [...samples, ...extra];
-  const latest = messages[messages.length - 1];
+  const latest = messages.slice(-3);
+  const [typing, setTyping] = useState<{ author: string; place: string; body: string } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -70,21 +61,12 @@ export default function CommunityScreen() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    const frame = requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: false }));
-    return () => cancelAnimationFrame(frame);
-  }, [open, messages.length]);
-
-  const [typing, setTyping] = useState<{ author: string; place: string; teamId?: string; body: string } | null>(null);
-
   function send() {
     const body = draft.trim();
     if (!body || typing) return;
     const mine: ChatMessage = {
       id: `me-${Date.now()}`,
       author: t('community.you'),
-      teamId: favorite?.id,
       body,
       mine: true,
       time: clock(i18n.language),
@@ -95,11 +77,11 @@ export default function CommunityScreen() {
     const reply = t(replies[replyIndex.current % replies.length]);
     replyIndex.current += 1;
     if (replyTimer.current) clearTimeout(replyTimer.current);
-    setTyping({ author: speaker.author, place: speaker.place, teamId: speaker.teamId, body: '' });
+    setTyping({ author: speaker.author, place: speaker.place, body: '' });
     let index = 0;
     replyTimer.current = setInterval(() => {
       index += 1;
-      setTyping({ author: speaker.author, place: speaker.place, teamId: speaker.teamId, body: reply.slice(0, index) });
+      setTyping({ author: speaker.author, place: speaker.place, body: reply.slice(0, index) });
       if (index >= reply.length) {
         if (replyTimer.current) clearInterval(replyTimer.current);
         setTyping(null);
@@ -109,7 +91,6 @@ export default function CommunityScreen() {
             id: `reply-${Date.now()}`,
             author: speaker.author,
             place: speaker.place,
-            teamId: speaker.teamId,
             body: reply,
             time: clock(i18n.language),
           },
@@ -119,13 +100,16 @@ export default function CommunityScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}>
-        <View style={{ width: '100%', maxWidth: 720, alignSelf: 'center', alignItems: 'center', paddingHorizontal: wide ? 32 : 16, paddingTop: space.lg, gap: space.sm }}>
-          <AppText variant="kicker" tone="accent" style={{ textAlign: 'center' }}>
+    <Screen>
+      <Stage kicker={t('home.kicker')} title={t('home.title')}>
+        <AppText variant="body" tone="muted" style={{ maxWidth: 640 }}>
+          {t('home.subtitle')}
+        </AppText>
+        <View style={{ gap: space.sm, maxWidth: 640 }}>
+          <AppText variant="kicker" tone="accent">
             {t('community.social')}
           </AppText>
-          <View style={{ flexDirection: 'row', gap: space.sm, width: '100%', maxWidth: 560, justifyContent: 'center' }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
             {socials.map((item) => (
               <Pressable
                 key={item.id}
@@ -133,29 +117,20 @@ export default function CommunityScreen() {
                 accessibilityLabel={item.label}
                 onPress={() => Linking.openURL(item.url)}
                 style={{
-                  flex: 1,
+                  flexGrow: 1,
+                  flexBasis: 140,
                   minHeight: 52,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: space.sm,
                   paddingHorizontal: space.sm,
-                  borderRadius: radius.card,
+                  borderRadius: 16,
                   borderWidth: 1,
-                  borderColor: colors.borderStrong,
-                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  backgroundColor: 'transparent',
                 }}>
-                <View
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 14,
-                    backgroundColor: item.id === 'x' && themeName === 'dark' ? '#F8FAFC' : item.color,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                  <FontAwesome6 name={item.icon} iconStyle="brand" size={13} color={item.id === 'x' && themeName === 'dark' ? '#111827' : '#FFFFFF'} />
-                </View>
+                <FontAwesome6 name={item.icon} iconStyle="brand" size={14} color={colors.text} />
                 {item.id === 'x' ? null : (
                   <AppText variant="small" style={{ fontFamily: fontFamily.semibold }}>
                     {item.label}
@@ -165,191 +140,128 @@ export default function CommunityScreen() {
             ))}
           </View>
         </View>
-        <CostaRicaBoard />
-      </ScrollView>
+        <View
+          style={{
+            width: '100%',
+            alignSelf: 'stretch',
+            borderRadius: 16,
+            backgroundColor: name === 'dark' ? '#141414' : '#FFFFFF',
+            padding: space.lg,
+            gap: space.md,
+            boxShadow: name === 'dark' ? '0 16px 40px rgba(0,0,0,0.4)' : '0 14px 36px rgba(20,16,10,0.06)',
+          }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.text }} />
+              <AppText variant="heading">{t('community.live')}</AppText>
+            </View>
+            <Pressable accessibilityRole="button" onPress={() => setThreadOpen((open) => !open)} style={{ minHeight: 44, justifyContent: 'center' }}>
+              <AppText variant="small" style={{ fontFamily: fontFamily.semibold }}>
+                {threadOpen ? t('home.showLess') : t('community.thread')}
+              </AppText>
+            </Pressable>
+          </View>
+          <ScrollView
+            ref={threadScroll as never}
+            scrollEnabled={threadOpen}
+            style={{ maxHeight: threadOpen ? 480 : undefined }}
+            contentContainerStyle={{ gap: space.sm }}
+            onContentSizeChange={() => {
+              if (threadOpen) threadScroll.current?.scrollToEnd({ animated: false });
+            }}>
+            {(threadOpen ? messages : latest).map((message) => (
+              <Bubble key={message.id} message={message} />
+            ))}
+            {typing ? <Bubble message={{ id: 'typing', author: typing.author, place: typing.place, body: typing.body || '···', time: '' }} /> : null}
+          </ScrollView>
+          <Composer draft={draft} setDraft={setDraft} send={send} />
+        </View>
+        <CostaRicaBoard embedded showHeading={false} />
+      </Stage>
+    </Screen>
+  );
+}
 
-      {open ? null : (
+function Bubble({ message }: { message: ChatMessage }) {
+  const { colors, name } = useAppTheme();
+  const mine = Boolean(message.mine);
+  const fill = mine ? (name === 'dark' ? '#F5F5F5' : '#171717') : name === 'dark' ? '#000000' : '#F3F1EC';
+  const ink = mine ? (name === 'dark' ? '#111111' : '#FFFFFF') : colors.text;
+  return (
+    <View style={{ alignItems: mine ? 'flex-end' : 'flex-start', gap: 4 }}>
+      <AppText variant="small" tone="muted">
+        {message.author}
+        {message.place ? ` · ${message.place}` : ''}
+        {message.time ? ` · ${message.time}` : ''}
+      </AppText>
       <View
-        pointerEvents="box-none"
         style={{
-          position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-          left: 0,
-          right: 0,
-          bottom: insets.bottom + space.md,
-          zIndex: 40,
-          alignItems: 'center',
-          paddingHorizontal: space.lg,
+          maxWidth: '82%',
+          backgroundColor: fill,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          borderRadius: 16,
+          borderBottomRightRadius: mine ? 4 : 16,
+          borderBottomLeftRadius: mine ? 16 : 4,
         }}>
+        <AppText variant="body" style={{ color: ink, fontSize: 15, lineHeight: 22 }}>
+          {message.body}
+        </AppText>
+      </View>
+    </View>
+  );
+}
+
+function Composer({
+  draft,
+  setDraft,
+  send,
+}: {
+  draft: string;
+  setDraft: (value: string) => void;
+  send: () => void;
+}) {
+  const { t } = useTranslation();
+  const { colors, name } = useAppTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+      <TextInput
+        value={draft}
+        onChangeText={setDraft}
+        placeholder={t('community.placeholder')}
+        placeholderTextColor={colors.textMuted}
+        accessibilityLabel={t('community.placeholder')}
+        onSubmitEditing={send}
+        style={{
+          flex: 1,
+          minHeight: hitSize,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: 16,
+          paddingHorizontal: space.lg,
+          color: colors.text,
+          backgroundColor: name === 'dark' ? '#000000' : '#F7F7F5',
+          fontFamily: fontFamily.regular,
+          fontSize: 16,
+        }}
+      />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t('community.live')}
-        onPress={() => setOpen(true)}
+        accessibilityLabel={t('community.send')}
+        onPress={send}
         style={{
-          width: '100%',
-          maxWidth: 720,
-          flexDirection: 'row',
+          minHeight: hitSize,
+          paddingHorizontal: space.lg,
+          borderRadius: 16,
+          backgroundColor: colors.accentFill,
           alignItems: 'center',
-          gap: space.sm,
-          minHeight: 56,
-          paddingHorizontal: space.md,
-          borderRadius: radius.card,
-          borderWidth: 1,
-          borderColor: colors.borderStrong,
-          backgroundColor: colors.surface,
+          justifyContent: 'center',
+          opacity: draft.trim() ? 1 : 0.45,
         }}>
-        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.success }} />
-        <View style={{ flex: 1 }}>
-          <AppText variant="small" style={{ fontFamily: fontFamily.semibold }}>
-            {t('community.live')}
-          </AppText>
-          <AppText variant="small" tone="muted" numberOfLines={1}>
-            {latest ? `${latest.author}: ${latest.body}` : t('community.placeholder')}
-          </AppText>
-        </View>
+        <AppText variant="small" tone="inverse" style={{ fontFamily: fontFamily.semibold }}>
+          {t('community.send')}
+        </AppText>
       </Pressable>
-      </View>
-      )}
-
-      {open ? (
-        <Pressable
-          accessibilityLabel={t('home.close')}
-          onPress={() => setOpen(false)}
-          style={{
-            position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            backgroundColor: 'rgba(7,11,22,0.55)',
-            zIndex: 70,
-          }}
-        />
-      ) : null}
-      {open ? (
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-            left: 0,
-            right: 0,
-            bottom: insets.bottom + space.xxl,
-            zIndex: 80,
-            alignItems: 'center',
-            paddingHorizontal: space.lg,
-          }}>
-          <View style={{ width: '100%', maxWidth: wide ? 720 : 440 }}>
-          <Card>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flex: 1 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.success }} />
-                <AppText variant="heading">{t('community.live')}</AppText>
-              </View>
-              <Pressable accessibilityRole="button" accessibilityLabel={t('home.close')} onPress={() => setOpen(false)} style={{ minWidth: hitSize, minHeight: hitSize, alignItems: 'center', justifyContent: 'center' }}>
-                <AppText variant="heading" tone="muted">
-                  ×
-                </AppText>
-              </Pressable>
-            </View>
-            <ScrollView
-              ref={scrollRef}
-              style={{ maxHeight: wide ? 520 : 360 }}
-              keyboardShouldPersistTaps="handled"
-              onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
-              contentContainerStyle={{ gap: space.md }}>
-              {messages.map((message) => {
-                const team = teamById(message.teamId);
-                return (
-                  <View key={message.id} style={{ flexDirection: message.mine ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: space.sm }}>
-                    {message.mine ? (
-                      favorite ? (
-                        <Helmet team={favorite} size={28} />
-                      ) : (
-                        <InitialsBadge label="CR" color={colors.accent} size={28} />
-                      )
-                    ) : team ? (
-                      <Helmet team={team} size={28} />
-                    ) : null}
-                    <View style={{ maxWidth: '78%', gap: 4, alignItems: message.mine ? 'flex-end' : 'flex-start' }}>
-                      {message.mine ? null : (
-                        <AppText variant="small" tone="muted">
-                          {message.author}
-                          {message.place ? ` · ${message.place}` : ''}
-                        </AppText>
-                      )}
-                      <View
-                        style={{
-                          backgroundColor: message.mine ? colors.accentFill : colors.bg,
-                          borderRadius: 16,
-                          borderBottomRightRadius: message.mine ? 4 : 16,
-                          borderBottomLeftRadius: message.mine ? 16 : 4,
-                          paddingHorizontal: space.md,
-                          paddingVertical: space.sm,
-                        }}>
-                        <AppText variant="body" tone={message.mine ? 'inverse' : 'default'}>
-                          {message.body}
-                        </AppText>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-              {typing ? (
-                <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm }}>
-                  {teamById(typing.teamId) ? <Helmet team={teamById(typing.teamId)!} size={28} /> : null}
-                  <View style={{ maxWidth: '78%', gap: 4 }}>
-                    <AppText variant="small" tone="muted">
-                      {typing.author} · {typing.place}
-                    </AppText>
-                    <View style={{ backgroundColor: colors.bg, borderRadius: 16, borderBottomLeftRadius: 4, paddingHorizontal: space.md, paddingVertical: space.sm }}>
-                      <AppText variant="body">{typing.body || '···'}</AppText>
-                    </View>
-                  </View>
-                </View>
-              ) : null}
-            </ScrollView>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-              <TextInput
-                value={draft}
-                onChangeText={setDraft}
-                placeholder={t('community.placeholder')}
-                placeholderTextColor={colors.textMuted}
-                accessibilityLabel={t('community.placeholder')}
-                onSubmitEditing={send}
-                style={{
-                  flex: 1,
-                  minHeight: hitSize,
-                  borderWidth: 1.5,
-                  borderColor: colors.borderStrong,
-                  borderRadius: radius.pill,
-                  paddingHorizontal: space.lg,
-                  color: colors.text,
-                  backgroundColor: colors.bg,
-                  fontFamily: fontFamily.regular,
-                  fontSize: 16,
-                }}
-              />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('community.send')}
-                onPress={send}
-                style={{
-                  minHeight: hitSize,
-                  paddingHorizontal: space.lg,
-                  borderRadius: radius.pill,
-                  backgroundColor: colors.accentFill,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: draft.trim() ? 1 : 0.45,
-                }}>
-                <AppText variant="small" tone="inverse" style={{ fontFamily: fontFamily.semibold }}>
-                  {t('community.send')}
-                </AppText>
-              </Pressable>
-            </View>
-          </Card>
-          </View>
-        </View>
-      ) : null}
     </View>
   );
 }

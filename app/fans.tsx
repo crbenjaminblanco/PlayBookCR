@@ -1,23 +1,24 @@
-import { ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppTheme } from '@/src/theme/ThemeProvider';
-import { space } from '@/src/theme/tokens';
 import { CostaRicaBoard } from '@/src/ui/CostaRicaBoard';
+import { Screen } from '@/src/ui/Screen';
+import { Stage } from '@/src/ui/Stage';
 import { AppText } from '@/src/ui/Text';
 
 export default function FansScreen() {
   const { t } = useTranslation();
-  const { colors } = useAppTheme();
-  const insets = useSafeAreaInsets();
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ paddingBottom: insets.bottom + space.xxxl, gap: space.xl }}>
-      <CostaRicaBoard />
-      <AppText variant="small" tone="muted" style={{ textAlign: 'center' }}>
+    <Screen>
+      <Stage kicker={t('home.kicker')} title={t('home.title')}>
+        <AppText variant="body" tone="muted" style={{ maxWidth: 640 }}>
+          {t('home.subtitle')}
+        </AppText>
+        <CostaRicaBoard embedded showHeading={false} />
+      </Stage>
+      <AppText variant="small" tone="muted">
         {t('landing.footer')}
       </AppText>
-    </ScrollView>
+    </Screen>
   );
 }

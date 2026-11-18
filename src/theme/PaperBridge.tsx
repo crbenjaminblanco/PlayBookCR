@@ -9,7 +9,7 @@ export function PaperBridge({ children }: { children: ReactNode }) {
   const base = name === 'dark' ? MD3DarkTheme : MD3LightTheme;
   const theme = {
     ...base,
-    roundness: 3,
+    roundness: 4,
     colors: {
       ...base.colors,
       primary: colors.accentFill,
@@ -22,6 +22,14 @@ export function PaperBridge({ children }: { children: ReactNode }) {
       onSurfaceVariant: colors.textMuted,
       outline: colors.borderStrong,
       error: colors.danger,
+      elevation: {
+        level0: 'transparent',
+        level1: colors.surface,
+        level2: colors.surface,
+        level3: colors.surface,
+        level4: colors.surfaceElevated,
+        level5: colors.surfaceElevated,
+      },
     },
   };
 
