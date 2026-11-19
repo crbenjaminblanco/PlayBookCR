@@ -273,3 +273,14 @@ export const weekGames: WeekGame[] = [
 export function weekBoard() {
   return JSON.stringify(weekGames);
 }
+
+/**
+ * Lee la línea pública como un marcador entero: el no favorito en 20 y el favorito
+ * 20 más el margen, redondeado. Es una lectura de esa línea, no un resultado ni un total de modelo.
+ */
+export function lineScore(game: WeekGame): { away: number; home: number } {
+  const underdog = 20;
+  const favorite = underdog + Math.round(game.margin);
+  if (game.favoriteId === game.away.teamId) return { away: favorite, home: underdog };
+  return { away: underdog, home: favorite };
+}

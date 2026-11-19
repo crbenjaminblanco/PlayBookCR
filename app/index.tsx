@@ -4,12 +4,10 @@ import { Platform, Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { teamById } from '@/src/data/teams';
-import { weekGames, weekResults, type WeekGame } from '@/src/data/week';
+import { lineScore, weekGames, weekResults, type WeekGame } from '@/src/data/week';
 import { useSession } from '@/src/session/SessionProvider';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
 import { fontFamily, hero, radius, space } from '@/src/theme/tokens';
-import { AccountButton } from '@/src/ui/AppDock';
-import { Brand } from '@/src/ui/Brand';
 import { Card } from '@/src/ui/Card';
 import { DroneBall } from '@/src/ui/DroneBall';
 import { FanPodium } from '@/src/ui/FanPodium';
@@ -54,11 +52,7 @@ export default function HomeScreen() {
 
   return (
     <Screen>
-      {/* Como en las apps deportivas: logo, franja de marcadores y luego el hero. */}
-      <View style={{ gap: space.md }}>
-        <TopBar />
-        <Ticker />
-      </View>
+      <Ticker />
       <Hero pick={pick} />
       <Featured skip={pick.game.id} />
       <Fans />
@@ -75,21 +69,6 @@ function Ticker() {
       results={weekResults}
       onPress={() => router.push({ pathname: '/analysis', params: { week: '10' } })}
     />
-  );
-}
-
-/**
- * Barra del teléfono: logo a la izquierda y la cuenta a la derecha.
- * Tema, idioma y equipo se configuran dentro de la cuenta, no en la portada.
- */
-function TopBar() {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-      <View style={{ flex: 1 }}>
-        <Brand size={34} />
-      </View>
-      <AccountButton />
-    </View>
   );
 }
 
@@ -284,10 +263,12 @@ function Featured({ skip }: { skip: string }) {
 const SCORE_TILE = 136;
 
 function ScoreTile({ game }: { game: WeekGame }) {
+  const { t } = useTranslation();
   const { colors } = useAppTheme();
   const away = teamById(game.away.teamId);
   const home = teamById(game.home.teamId);
   const favorite = teamById(game.favoriteId);
+  const expected = lineScore(game);
   if (!away || !home) return null;
 
   return (
@@ -300,21 +281,21 @@ function ScoreTile({ game }: { game: WeekGame }) {
         {game.kickoff}
       </AppText>
       {[
-        { team: away, side: game.away },
-        { team: home, side: game.home },
-      ].map(({ team, side }) => (
+        { team: away, score: expected.away },
+        { team: home, score: expected.home },
+      ].map(({ team, score }) => (
         <View key={team.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: team.color }} />
           <AppText variant="small" style={{ flex: 1, fontFamily: game.favoriteId === team.id ? fontFamily.bold : fontFamily.semibold }}>
             {team.abbr}
           </AppText>
-          <AppText variant="caption" tone="muted" style={{ fontVariant: ['tabular-nums'] }}>
-            {side.record}
+          <AppText variant="small" style={{ fontFamily: fontFamily.stat, fontVariant: ['tabular-nums'] }}>
+            {score}
           </AppText>
         </View>
       ))}
-      <AppText variant="caption" tone="accent" style={{ fontFamily: fontFamily.bold, fontSize: 11, lineHeight: 14, fontVariant: ['tabular-nums'] }}>
-        {favorite?.abbr} −{game.margin}
+      <AppText variant="caption" tone="muted" style={{ fontSize: 11, lineHeight: 14, fontVariant: ['tabular-nums'] }}>
+        {t('app.lineShort')} · {favorite?.abbr} −{game.margin}
       </AppText>
     </Pressable>
   );

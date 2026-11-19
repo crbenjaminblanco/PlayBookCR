@@ -96,6 +96,8 @@ export function CostaRicaMap({ provinces, selectedId, onSelect, width, teamId = 
                 ? {
                     onClick: select,
                     onMouseEnter: () => onHover?.(shape.id),
+                    tabIndex: -1,
+                    focusable: false,
                     style: { cursor: 'pointer', transition: 'fill 180ms ease-out, stroke 180ms ease-out, stroke-width 180ms ease-out' },
                   }
                 : null)}

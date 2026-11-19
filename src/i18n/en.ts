@@ -222,6 +222,7 @@ const en = {
     inCountry: 'nationwide',
     featuredPiece: 'Featured',
     lineShort: 'Line',
+    expected: 'Expected score',
     favoriteShort: 'FAV',
     tickerLabel: 'Finals · Wk 10',
     week11: 'Week 11',

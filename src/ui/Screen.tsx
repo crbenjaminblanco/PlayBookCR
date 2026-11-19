@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { Platform, ScrollView, View, type ScrollViewInstance, type ViewProps } from 'react-native';
 import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,7 +25,10 @@ export function Screen({ children, scroll = true, footer, center = false, tabs =
   const scroller = useRef<ScrollViewInstance | null>(null);
 
   const toTop = useCallback(() => {
-    scroller.current?.scrollTo({ y: 0, animated: false });
+    const node = scroller.current as unknown as { scrollTo?: (options: { y: number; animated?: boolean }) => void; scrollTop?: number; getScrollableNode?: () => HTMLElement } | null;
+    node?.scrollTo?.({ y: 0, animated: false });
+    const host = node?.getScrollableNode?.() ?? (node as HTMLElement | null);
+    if (host && typeof host.scrollTop === 'number') host.scrollTop = 0;
     reportScroll(0);
     if (Platform.OS === 'web') window.scrollTo(0, 0);
   }, [reportScroll]);
@@ -35,14 +38,30 @@ export function Screen({ children, scroll = true, footer, center = false, tabs =
     return () => registerScroller(null);
   }, [registerScroller, toTop]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     toTop();
+  }, [pathname, toTop]);
+
+  useEffect(() => {
     if (Platform.OS !== 'web') return;
-    // El navegador a veces restaura el scroll de la visita anterior (el mapa) después del primer frame.
-    const frame = requestAnimationFrame(toTop);
-    const later = setTimeout(toTop, 60);
+    const node = (scroller.current as unknown as { getScrollableNode?: () => HTMLElement } | null)?.getScrollableNode?.();
+    if (!node) return;
+    const arrived = performance.now();
+    // Al entrar, un control de más abajo (el mapa, el chat) no debe arrastrar la página.
+    const onFocus = (event: FocusEvent) => {
+      if (performance.now() - arrived > 800) return;
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !node.contains(target)) return;
+      if (event.relatedTarget != null) return;
+      if (target.getBoundingClientRect().top - node.getBoundingClientRect().top > 120) {
+        node.scrollTop = 0;
+        target.blur();
+      }
+    };
+    node.addEventListener('focusin', onFocus);
+    const later = setTimeout(toTop, 80);
     return () => {
-      cancelAnimationFrame(frame);
+      node.removeEventListener('focusin', onFocus);
       clearTimeout(later);
     };
   }, [pathname, toTop]);
@@ -67,12 +86,15 @@ export function Screen({ children, scroll = true, footer, center = false, tabs =
           showsVerticalScrollIndicator={false}
           onScroll={(event) => reportScroll(event.nativeEvent.contentOffset.y)}
           scrollEventThrottle={16}
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: center ? 'center' : 'flex-start',
-            paddingTop: topPad,
-            paddingBottom: bottomPad,
-          }}>
+          contentContainerStyle={[
+            {
+              flexGrow: 1,
+              justifyContent: center ? 'center' : 'flex-start',
+              paddingTop: topPad,
+              paddingBottom: bottomPad,
+            },
+            Platform.OS === 'web' ? ({ overflowAnchor: 'none' } as object) : null,
+          ]}>
           {body}
         </ScrollView>
       ) : (

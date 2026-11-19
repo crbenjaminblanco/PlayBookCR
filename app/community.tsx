@@ -124,7 +124,12 @@ export default function CommunityScreen() {
           ref={threadScroll as never}
           style={{ height: 360 }}
           contentContainerStyle={{ gap: space.md, padding: space.lg + 2 }}
-          onContentSizeChange={() => threadScroll.current?.scrollToEnd({ animated: true })}>
+          onContentSizeChange={() => {
+            const node = threadScroll.current as unknown as { scrollTop?: number; scrollHeight?: number; clientHeight?: number } | null;
+            if (!node || node.scrollHeight == null || node.clientHeight == null) return;
+            if (node.scrollHeight <= node.clientHeight + 8) return;
+            node.scrollTop = node.scrollHeight;
+          }}>
           {messages.map((message, index) => (
             <Bubble key={message.id} message={message} grouped={index > 0 && messages[index - 1].author === message.author} />
           ))}

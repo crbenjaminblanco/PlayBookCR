@@ -6,7 +6,7 @@ import { Menu } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 
 import { teamById, type Team } from '@/src/data/teams';
-import { teamStars, weekGames, weekResults, type WeekGame, type WeekSide } from '@/src/data/week';
+import { lineScore, teamStars, weekGames, weekResults, type WeekGame, type WeekSide } from '@/src/data/week';
 import { useSession } from '@/src/session/SessionProvider';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
 import { fontFamily, lift, radius, space } from '@/src/theme/tokens';
@@ -106,6 +106,7 @@ function GameCard({ game, open, onToggle }: { game: WeekGame; open: boolean; onT
   const favorite = teamById(game.favoriteId);
   if (!home || !away) return null;
   const scored = game.homeScore != null && game.awayScore != null;
+  const expected = lineScore(game);
 
   return (
     <InView>
@@ -124,20 +125,18 @@ function GameCard({ game, open, onToggle }: { game: WeekGame; open: boolean; onT
             <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-            <View style={{ flex: 1, gap: space.sm }}>
-              <TeamLine team={away} side={game.away} score={scored ? game.awayScore : null} favorite={game.favoriteId === away.id} />
-              <TeamLine team={home} side={game.home} score={scored ? game.homeScore : null} favorite={game.favoriteId === home.id} />
-            </View>
+          <View style={{ gap: space.sm }}>
             {scored ? null : (
-              <View style={{ alignItems: 'center', paddingVertical: space.sm, paddingHorizontal: space.md, borderRadius: radius.control, backgroundColor: colors.surfaceElevated, minWidth: 76 }}>
-                <AppText variant="caption" tone="muted">
-                  {t('app.lineShort')}
-                </AppText>
-                <AppText variant="label" style={{ fontFamily: fontFamily.stat, fontVariant: ['tabular-nums'] }}>
-                  {favorite?.abbr} −{game.margin}
-                </AppText>
-              </View>
+              <AppText variant="caption" tone="muted">
+                {t('app.expected')}
+              </AppText>
+            )}
+            <TeamLine team={away} side={game.away} score={scored ? game.awayScore : expected.away} favorite={game.favoriteId === away.id} />
+            <TeamLine team={home} side={game.home} score={scored ? game.homeScore : expected.home} favorite={game.favoriteId === home.id} />
+            {scored ? null : (
+              <AppText variant="caption" tone="muted" style={{ fontSize: 12, lineHeight: 16, fontVariant: ['tabular-nums'] }}>
+                {t('app.lineShort')} · {favorite?.abbr} −{game.margin}
+              </AppText>
             )}
           </View>
 
