@@ -91,13 +91,14 @@ export function CostaRicaMap({ provinces, selectedId, onSelect, width, teamId = 
               strokeWidth={active ? 3.2 : hot ? 2.6 : 1.6}
               strokeLinejoin="round"
               accessibilityLabel={shape.id}
+              onPress={select}
               {...(Platform.OS === 'web'
                 ? {
                     onClick: select,
                     onMouseEnter: () => onHover?.(shape.id),
                     style: { cursor: 'pointer', transition: 'fill 180ms ease-out, stroke 180ms ease-out, stroke-width 180ms ease-out' },
                   }
-                : { onPress: select })}
+                : null)}
             />
           );
         })}

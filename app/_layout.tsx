@@ -67,6 +67,7 @@ function ThemedStack() {
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     document.documentElement.lang = 'es';
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
     document.title = 'PlayBookCR · La jornada de la NFL leída con IA';
     const setMeta = (key: string, content: string, attr: 'name' | 'property') => {
       let node = document.head.querySelector(`meta[${attr}="${key}"]`);

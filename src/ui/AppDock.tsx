@@ -13,6 +13,7 @@ import { Brand } from '@/src/ui/Brand';
 import { Helmet } from '@/src/ui/Helmet';
 import { Avatar, type IconName } from '@/src/ui/Kit';
 import { useAsk } from '@/src/ui/AskDock';
+import { useHomeScroll } from '@/src/ui/homeScroll';
 import { AppText } from '@/src/ui/Text';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
 
@@ -45,8 +46,10 @@ function useItems(): Item[] {
 function useNav() {
   const pathname = usePathname();
   const { open, setOpen } = useAsk();
+  const { scrollToTop } = useHomeScroll();
   return {
     pathname,
+    scrollToTop,
     isActive: (item: Item) => (item.href ? pathname === item.href : open),
     follow: (item: Item) => {
       if (!item.href) {
@@ -54,7 +57,9 @@ function useNav() {
         return;
       }
       setOpen(false);
-      router.push(item.href);
+      if (pathname !== item.href) router.push(item.href);
+      // Misma sección o una nueva: la página queda arriba, no en el mapa ni en un chip.
+      scrollToTop();
     },
   };
 }
@@ -63,7 +68,7 @@ export function AppDock({ placement }: { placement: 'top' | 'bottom' }) {
   const { wide } = useBreakpoint();
   const { pathname } = useNav();
   if (bare.includes(pathname)) return null;
-  if (placement === 'top') return wide ? <TopBar /> : null;
+  if (placement === 'top') return wide ? <TopBar /> : <MobileHeader />;
   return wide ? null : <TabBar />;
 }
 
@@ -164,10 +169,36 @@ function Tab({ item, active, onPress }: { item: Item; active: boolean; onPress: 
   );
 }
 
+/** En el teléfono la navegación vive abajo; arriba solo quedan la marca y la cuenta. */
+function MobileHeader() {
+  const { colors, name } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const { pathname, scrollToTop } = useNav();
+  const glass = name === 'dark' ? 'rgba(8,12,21,0.92)' : 'rgba(242,244,248,0.92)';
+
+  return (
+    <View style={[{ backgroundColor: glass, borderBottomWidth: 1, borderBottomColor: colors.border, zIndex: 40, paddingTop: insets.top }, frosted]}>
+      <View style={{ height: 60, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm }}>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="PlayBookCR"
+          onPress={() => {
+            if (pathname !== '/') router.push('/');
+            scrollToTop();
+          }}
+          style={{ flexShrink: 1 }}>
+          <Brand size={28} />
+        </Pressable>
+        <AccountButton active={pathname === '/profile'} />
+      </View>
+    </View>
+  );
+}
+
 function TopBar() {
   const { colors, name } = useAppTheme();
   const items = useItems();
-  const { pathname, isActive, follow } = useNav();
+  const { pathname, isActive, follow, scrollToTop } = useNav();
   const glass = name === 'dark' ? 'rgba(8,12,21,0.85)' : 'rgba(242,244,248,0.85)';
 
   return (
@@ -184,7 +215,13 @@ function TopBar() {
           justifyContent: 'space-between',
           gap: space.lg,
         }}>
-        <Pressable accessibilityRole="link" accessibilityLabel={items[0].label} onPress={() => router.push('/')}>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={items[0].label}
+          onPress={() => {
+            if (pathname !== '/') router.push('/');
+            scrollToTop();
+          }}>
           <Brand />
         </Pressable>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 4, borderRadius: radius.pill, backgroundColor: colors.surfaceElevated }}>

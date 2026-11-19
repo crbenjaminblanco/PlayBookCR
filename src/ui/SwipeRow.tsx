@@ -22,6 +22,8 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   contentStyle?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
+  /** Lleva ese elemento a la vista dentro de la fila, sin mover el scroll de la página. */
+  focusIndex?: number;
 };
 
 /**
@@ -29,7 +31,7 @@ type Props = {
  * en la web, también arrastrando con el mouse. Con `itemWidth`, cada elemento se
  * acomoda al soltar (nativo: snapToInterval; web: lo hace este componente).
  */
-export function SwipeRow({ children, itemWidth, gap = 0, inset = 0, bleed = false, style, contentStyle, accessibilityLabel }: Props) {
+export function SwipeRow({ children, itemWidth, gap = 0, inset = 0, bleed = false, style, contentStyle, accessibilityLabel, focusIndex = -1 }: Props) {
   const ref = useRef<ScrollViewInstance | null>(null);
   const [arrows] = useState(usesPointer);
   const [edges, setEdges] = useState({ left: false, right: false });
@@ -116,6 +118,19 @@ export function SwipeRow({ children, itemWidth, gap = 0, inset = 0, bleed = fals
       node.removeEventListener('click', onClick, true);
     };
   }, [itemWidth, gap]);
+
+  useEffect(() => {
+    if (focusIndex < 0 || Platform.OS !== 'web') return;
+    const frame = requestAnimationFrame(() => {
+      const node = scrollNode();
+      const inner = node?.firstElementChild;
+      const child = inner?.children.item(focusIndex) as HTMLElement | null;
+      if (!node || !child) return;
+      const left = child.offsetLeft - (node.clientWidth - child.offsetWidth) / 2;
+      node.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusIndex]);
 
   const row = (
     <ScrollView

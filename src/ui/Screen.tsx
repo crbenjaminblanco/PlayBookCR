@@ -37,9 +37,18 @@ export function Screen({ children, scroll = true, footer, center = false, tabs =
 
   useEffect(() => {
     toTop();
+    if (Platform.OS !== 'web') return;
+    // El navegador a veces restaura el scroll de la visita anterior (el mapa) después del primer frame.
+    const frame = requestAnimationFrame(toTop);
+    const later = setTimeout(toTop, 60);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(later);
+    };
   }, [pathname, toTop]);
 
-  const topPad = wide ? space.xxl : insets.top + space.md;
+  // En el teléfono el encabezado ya incluye el área segura. Bienvenida y equipo no tienen ese encabezado.
+  const topPad = wide ? space.xxl : tabs ? space.lg : insets.top + space.md;
   const bottomPad = footer ? space.xl : insets.bottom + space.xxl + (wide || !tabs ? 0 : dockHeight);
 
   const body = (

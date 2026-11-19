@@ -55,9 +55,11 @@ export function CostaRicaBoard({ aside }: { aside?: ReactNode } = {}) {
   if (status === 'error') return <StateMessage variant="error" title={t('common.error')} actionLabel={t('common.retry')} onAction={retry} />;
 
   const activeFilter = teamById(teamFilter);
-  // Sin elección, el detalle muestra la provincia con más afición para que nunca quede vacío.
-  const selectedId = picked ?? provinceRows[0]?.id ?? null;
-  const selected = provinces.find((province) => province.id === selectedId);
+  // El mapa y los chips solo se marcan cuando usted elige. El detalle, si no hay elección, muestra la provincia con más afición.
+  const selectedId = picked;
+  const detailId = picked ?? provinceRows[0]?.id ?? null;
+  const selected = provinces.find((province) => province.id === detailId);
+  const chipIndex = picked ? provinceRows.findIndex((row) => row.id === picked) : -1;
 
   const mapSide = (
     <View style={{ gap: space.lg, flex: wide ? 1.15 : undefined, minWidth: 0 }}>
@@ -77,7 +79,7 @@ export function CostaRicaBoard({ aside }: { aside?: ReactNode } = {}) {
 
       <Legend label={activeFilter ? t('app.legendTeam', { team: activeFilter.name }) : t('app.legendAll')} />
 
-      <SwipeRow accessibilityLabel={t('app.pickProvince')} inset={wide ? 0 : space.lg + 4} bleed={!wide} gap={space.sm}>
+      <SwipeRow accessibilityLabel={t('app.pickProvince')} inset={wide ? 0 : space.lg + 4} bleed={!wide} gap={space.sm} focusIndex={chipIndex}>
         {provinceRows.map((row) => {
           const active = row.id === selectedId;
           return (
@@ -192,6 +194,34 @@ function ProvinceDetail({ province, teamId, favoriteId }: { province: (typeof pr
   const filterRank = filter ? shares.findIndex((share) => share.teamId === filter.id) + 1 : 0;
   const filterFans = filter ? teamFans(province, filter.id) : 0;
 
+  if (filter) {
+    const percent = total ? Math.round((filterFans / total) * 100) : 0;
+    return (
+      <View style={{ gap: space.md, padding: space.lg, borderRadius: radius.card - 4, backgroundColor: colors.surfaceElevated }}>
+        <View>
+          <AppText variant="heading">{province.id}</AppText>
+          <AppText variant="caption" tone="muted">
+            {t('app.provinceFans', { count: number.format(filterFans) })}
+          </AppText>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, borderRadius: radius.control, backgroundColor: colors.surface }}>
+          <Helmet team={filter} size={36} />
+          <View style={{ flex: 1 }}>
+            <AppText variant="label">{`${filter.city} ${filter.name}`}</AppText>
+            <AppText variant="caption" tone="muted">
+              {number.format(filterFans)} · {percent} %
+            </AppText>
+          </View>
+          {filterRank ? (
+            <AppText variant="stat" tone="accent" style={{ fontSize: 22, lineHeight: 26 }}>
+              #{filterRank}
+            </AppText>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: space.md, padding: space.lg, borderRadius: radius.card - 4, backgroundColor: colors.surfaceElevated }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: space.md }}>
@@ -210,23 +240,6 @@ function ProvinceDetail({ province, teamId, favoriteId }: { province: (typeof pr
           </View>
         ) : null}
       </View>
-
-      {filter ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, borderRadius: radius.control, backgroundColor: colors.surface }}>
-          <Helmet team={filter} size={36} />
-          <View style={{ flex: 1 }}>
-            <AppText variant="label">{filter.name}</AppText>
-            <AppText variant="caption" tone="muted">
-              {number.format(filterFans)} · {total ? Math.round((filterFans / total) * 100) : 0} %
-            </AppText>
-          </View>
-          {filterRank ? (
-            <AppText variant="stat" tone="accent" style={{ fontSize: 22, lineHeight: 26 }}>
-              #{filterRank}
-            </AppText>
-          ) : null}
-        </View>
-      ) : null}
 
       {top.map((share) => {
         const team = teamById(share.teamId);
