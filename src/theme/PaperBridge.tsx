@@ -9,7 +9,7 @@ export function PaperBridge({ children }: { children: ReactNode }) {
   const base = name === 'dark' ? MD3DarkTheme : MD3LightTheme;
   const theme = {
     ...base,
-    roundness: 4,
+    roundness: 2,
     colors: {
       ...base.colors,
       primary: colors.accentFill,

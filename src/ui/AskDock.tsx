@@ -1,15 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { usePathname } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Linking, Platform, Pressable, ScrollView, View, type ScrollViewInstance, type TextStyle } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
-import { IconButton, TextInput } from 'react-native-paper';
+import { Linking, Platform, Pressable, ScrollView, TextInput, View, type ScrollViewInstance, type TextStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { streamGemini, type GeminiTurn } from '@/src/ai/gemini';
+import { teamById } from '@/src/data/teams';
+import { useSession } from '@/src/session/SessionProvider';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
-import { fontFamily, hitSize, space } from '@/src/theme/tokens';
+import { fontFamily, hitSize, radius, space } from '@/src/theme/tokens';
+import { AiMark } from '@/src/ui/AiMark';
+import { IconButton } from '@/src/ui/Kit';
+import { TypingDots } from '@/src/ui/TypingDots';
 import { AppText } from '@/src/ui/Text';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
 
@@ -89,10 +92,10 @@ function LinkedLine({ text }: { text: string }) {
 function AskDock() {
   const { t, i18n } = useTranslation();
   const { colors } = useAppTheme();
+  const { auth } = useSession();
   const { wide } = useBreakpoint();
-  const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const { open, setOpen } = useAsk();
-  const hidden = pathname === '/community';
   const [draft, setDraft] = useState('');
   const [photo, setPhoto] = useState<{ mime: string; data: string } | null>(null);
   const [turns, setTurns] = useState<GeminiTurn[]>([]);
@@ -134,10 +137,6 @@ function AskDock() {
   }, [turns, ready]);
 
   useEffect(() => {
-    if (hidden && open) setOpen(false);
-  }, [hidden, open, setOpen]);
-
-  useEffect(() => {
     if (!open) return;
     const frame = requestAnimationFrame(followThread);
     return () => cancelAnimationFrame(frame);
@@ -154,8 +153,8 @@ function AskDock() {
     reader.readAsDataURL(file);
   }
 
-  async function send() {
-    const text = draft.trim();
+  async function send(override?: string) {
+    const text = (override ?? draft).trim();
     if ((!text && !photo) || busy) return;
     const next = [...turns, { role: 'user' as const, text, image: photo ?? undefined }];
     setTurns([...next, { role: 'model', text: '' }]);
@@ -179,7 +178,15 @@ function AskDock() {
     }
   }
 
-  if (hidden) return null;
+  const sheet = !wide;
+  const canSend = Boolean(draft.trim() || photo) && !busy;
+  const myTeam = teamById(auth?.teamId);
+  const suggestions = [
+    myTeam ? t('app.askTeam', { team: myTeam.name }) : t('app.ask1'),
+    t('app.ask2'),
+    t('app.ask3'),
+    t('app.ask4'),
+  ];
 
   return (
     <>
@@ -187,218 +194,198 @@ function AskDock() {
         <Pressable
           accessibilityLabel={t('home.close')}
           onPress={() => setOpen(false)}
-          style={{ position: Platform.OS === 'web' ? 'fixed' : 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(7,11,22,0.55)', zIndex: 70 }}
+          style={{ position: Platform.OS === 'web' ? 'fixed' : 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(11,19,36,0.45)', zIndex: 70 }}
         />
       ) : null}
       {open ? (
         <View
+          accessibilityViewIsModal
           style={{
             position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-            top: 0,
-            right: 0,
-            bottom: 0,
+            top: sheet ? insets.top + 40 : space.md,
+            right: sheet ? 0 : space.md,
+            bottom: sheet ? 0 : space.md,
+            left: sheet ? 0 : undefined,
             zIndex: 80,
-            width: wide ? 480 : '100%',
-            height: '100%',
-            backgroundColor: colors.bg,
-            borderLeftWidth: 1,
-            borderLeftColor: colors.border,
-            padding: space.lg,
+            width: sheet ? '100%' : 440,
+            backgroundColor: colors.surface,
+            borderRadius: radius.sheet,
+            borderBottomLeftRadius: sheet ? 0 : radius.sheet,
+            borderBottomRightRadius: sheet ? 0 : radius.sheet,
+            paddingHorizontal: space.lg + 4,
+            paddingTop: sheet ? space.md : space.lg + 4,
+            paddingBottom: sheet ? insets.bottom + space.md : space.lg,
             gap: space.md,
+            shadowColor: '#0B1324',
+            shadowOffset: { width: 0, height: -8 },
+            shadowOpacity: 0.12,
+            shadowRadius: 32,
+            elevation: 12,
           }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flex: 1 }}>
-                <SymbolView name={{ ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' }} tintColor={colors.accent} size={20} />
-                <AppText variant="heading">{t('analysis.chatTitle')}</AppText>
-              </View>
-              <Pressable accessibilityRole="button" accessibilityLabel={t('home.close')} onPress={() => setOpen(false)} style={{ minWidth: hitSize, minHeight: hitSize, alignItems: 'center', justifyContent: 'center' }}>
-                <AppText variant="heading" tone="muted">×</AppText>
-              </Pressable>
+          {sheet ? <View style={{ alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.borderStrong }} /> : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+            <AiBadge size={40} />
+            <View style={{ flex: 1 }}>
+              <AppText variant="heading">{t('analysis.chatTitle')}</AppText>
+              <AppText variant="caption" tone="muted" numberOfLines={1}>
+                {busy ? t('analysis.thinking') : t('app.aiOnline')}
+              </AppText>
             </View>
-            <AppText variant="small" tone="muted">
-              {t('analysis.chatHint')}
-            </AppText>
-            <ScrollView ref={threadRef} style={{ flex: 1 }} onContentSizeChange={followThread} contentContainerStyle={{ gap: space.md }}>
-              {turns.map((turn, index) => {
-                const mine = turn.role === 'user';
-                const waiting = !mine && !turn.text && busy;
-                return (
-                  <View key={`${turn.role}-${index}`} style={{ alignItems: mine ? 'flex-end' : 'flex-start', gap: 4 }}>
-                    <AppText variant="small" tone="muted">
-                      {mine ? t('analysis.you') : t('analysis.assistant')}
-                    </AppText>
-                    <View
-                      style={{
-                        maxWidth: '92%',
-                        backgroundColor: mine ? colors.accentFill : colors.bg,
-                        borderRadius: 16,
-                        borderBottomRightRadius: mine ? 4 : 16,
-                        borderBottomLeftRadius: mine ? 16 : 4,
-                        paddingHorizontal: space.md,
-                        paddingVertical: space.sm,
-                        gap: space.xs,
-                      }}>
-                      {turn.image ? (
-                        <AppText variant="small" tone={mine ? 'inverse' : 'muted'}>
-                          {t('analysis.photoAttached')}
-                        </AppText>
-                      ) : null}
-                      {mine ? (
-                        <AppText variant="body" tone="inverse">
-                          {turn.text}
-                        </AppText>
-                      ) : waiting ? (
-                        <Thinking label={t('analysis.thinking')} />
-                      ) : (
-                        <AnswerText text={turn.text} />
-                      )}
-                    </View>
+            {turns.length ? (
+              <IconButton
+                icon="square-edit-outline"
+                label={t('app.newChat')}
+                tone="plain"
+                onPress={() => {
+                  if (busy) return;
+                  setTurns([]);
+                  setError(null);
+                }}
+              />
+            ) : null}
+            <IconButton icon="close" label={t('home.close')} tone="plain" onPress={() => setOpen(false)} />
+          </View>
+          <ScrollView ref={threadRef} style={{ flex: 1 }} onContentSizeChange={followThread} contentContainerStyle={{ gap: space.md, paddingVertical: space.sm, flexGrow: 1 }}>
+            {turns.length === 0 ? <Welcome suggestions={suggestions} onPick={(text) => send(text)} /> : null}
+            {turns.map((turn, index) => {
+              const mine = turn.role === 'user';
+              const waiting = !mine && !turn.text && busy;
+              return (
+                <View key={`${turn.role}-${index}`} style={{ flexDirection: 'row', justifyContent: mine ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: space.sm }}>
+                  {mine ? null : <AiBadge size={28} />}
+                  <View
+                    style={{
+                      maxWidth: '84%',
+                      backgroundColor: mine ? colors.accent : colors.surfaceElevated,
+                      borderRadius: 20,
+                      borderBottomRightRadius: mine ? 6 : 20,
+                      borderBottomLeftRadius: mine ? 20 : 6,
+                      paddingHorizontal: 14,
+                      paddingVertical: 10,
+                      gap: space.xs,
+                    }}>
+                    {turn.image ? (
+                      <AppText variant="caption" style={{ color: mine ? 'rgba(255,255,255,0.8)' : colors.textMuted }}>
+                        {t('analysis.photoAttached')}
+                      </AppText>
+                    ) : null}
+                    {mine ? (
+                      <AppText variant="body" style={{ color: '#FFFFFF', fontSize: 15, lineHeight: 22 }}>
+                        {turn.text}
+                      </AppText>
+                    ) : waiting ? (
+                      <TypingDots color={colors.textMuted} />
+                    ) : (
+                      <AnswerText text={turn.text} />
+                    )}
                   </View>
-                );
-              })}
-              {error ? (
-                <AppText variant="small" tone="muted">
-                  {error}
-                </AppText>
-              ) : null}
-            </ScrollView>
-            {photo ? (
-              <AppText variant="small" tone="accent">
-                {t('analysis.photoReady')}
+                </View>
+              );
+            })}
+            {error ? (
+              <AppText variant="small" tone="danger">
+                {error}
               </AppText>
             ) : null}
-            <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'center' }}>
-              {Platform.OS === 'web' ? (
-                <IconButton
-                  icon="camera-outline"
-                  mode="contained-tonal"
-                  size={22}
-                  accessibilityLabel={t('analysis.photo')}
-                  onPress={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/*';
-                    input.onchange = () => {
-                      const file = input.files?.[0];
-                      if (file) onPhoto(file);
-                    };
-                    input.click();
-                  }}
-                />
-              ) : null}
-              <TextInput
-                mode="outlined"
-                dense
-                value={draft}
-                onChangeText={setDraft}
-                placeholder={t('analysis.placeholder')}
-                accessibilityLabel={t('analysis.placeholder')}
-                onSubmitEditing={send}
-                outlineColor={colors.borderStrong}
-                activeOutlineColor={colors.accent}
-                textColor={colors.text}
-                style={{ flex: 1, backgroundColor: colors.bg, fontFamily: fontFamily.regular }}
-              />
+          </ScrollView>
+          {photo ? (
+            <AppText variant="caption" tone="accent">
+              {t('analysis.photoReady')}
+            </AppText>
+          ) : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs, padding: 4, borderRadius: radius.pill, backgroundColor: colors.surfaceElevated }}>
+            {Platform.OS === 'web' ? (
               <IconButton
-                icon="send"
-                mode="contained"
-                size={22}
-                disabled={(!draft.trim() && !photo) || busy}
-                accessibilityLabel={t('analysis.send')}
-                containerColor={colors.accentFill}
-                iconColor={colors.accentText}
-                onPress={send}
+                icon="camera-outline"
+                label={t('analysis.photo')}
+                tone="plain"
+                onPress={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = () => {
+                    const file = input.files?.[0];
+                    if (file) onPhoto(file);
+                  };
+                  input.click();
+                }}
               />
-            </View>
+            ) : (
+              <View style={{ width: space.md }} />
+            )}
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              placeholder={t('analysis.placeholder')}
+              placeholderTextColor={colors.textMuted}
+              accessibilityLabel={t('analysis.placeholder')}
+              onSubmitEditing={() => send()}
+              style={{ flex: 1, minHeight: hitSize, color: colors.text, fontFamily: fontFamily.medium, fontSize: 15 }}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('analysis.send')}
+              accessibilityState={{ disabled: !canSend }}
+              disabled={!canSend}
+              onPress={() => send()}
+              style={{ width: hitSize, height: hitSize, borderRadius: hitSize / 2, backgroundColor: canSend ? colors.accent : colors.borderStrong, alignItems: 'center', justifyContent: 'center' }}>
+              <MaterialCommunityIcons name="arrow-up" size={22} color="#FFFFFF" />
+            </Pressable>
+          </View>
         </View>
       ) : null}
-      <View
-        style={{
-          position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-          right: 20,
-          bottom: 20,
-          width: 56,
-          height: 56,
-          zIndex: 81,
-        }}>
-        <AskPulse color={colors.accent} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('analysis.ask')}
-          onPress={() => setOpen(!open)}
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            backgroundColor: colors.accentFill,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-          <SymbolView name={{ ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' }} tintColor={colors.accentText} size={26} />
-        </Pressable>
-      </View>
     </>
   );
 }
 
-function AskPulse({ color }: { color: string }) {
-  const reduced = useReducedMotion();
-  const scale = useSharedValue(1);
-  useEffect(() => {
-    if (reduced) return;
-    scale.value = withRepeat(withTiming(1.28, { duration: 900, easing: Easing.inOut(Easing.quad) }), -1, true);
-  }, [reduced, scale]);
-  const style = useAnimatedStyle(() => ({
-    opacity: reduced ? 0 : 0.45 * (1.35 - scale.value),
-    transform: [{ scale: scale.value }],
-  }));
+/** Insignia de la IA: círculo cobalto con el balón animado. */
+function AiBadge({ size }: { size: number }) {
+  const { colors } = useAppTheme();
   return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: color,
-        },
-        style,
-      ]}
-    />
-  );
-}
-
-function Thinking({ label }: { label: string }) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-      <View style={{ flexDirection: 'row', gap: 4 }}>
-        {[0, 1, 2].map((dot) => (
-          <ThinkDot key={dot} delay={dot * 160} />
-        ))}
-      </View>
-      <AppText variant="body" tone="muted">
-        {label}
-      </AppText>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
+      <AiMark size={size * 0.56} />
     </View>
   );
 }
 
-function ThinkDot({ delay }: { delay: number }) {
-  const reduced = useReducedMotion();
-  const rise = useSharedValue(0);
-  useEffect(() => {
-    if (reduced) return;
-    const timer = setTimeout(() => {
-      rise.value = withRepeat(withTiming(1, { duration: 520, easing: Easing.inOut(Easing.quad) }), -1, true);
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [delay, reduced, rise]);
-  const style = useAnimatedStyle(() => ({
-    opacity: 0.35 + rise.value * 0.65,
-    transform: [{ translateY: -rise.value * 4 }],
-  }));
-  return <Animated.View style={[{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#3B82F6' }, style]} />;
+/** Pantalla inicial del asistente: qué puede hacer y preguntas listas para tocar. */
+function Welcome({ suggestions, onPick }: { suggestions: string[]; onPick: (text: string) => void }) {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ flex: 1, justifyContent: 'flex-end', gap: space.lg, paddingTop: space.lg }}>
+      <View style={{ alignItems: 'center', gap: space.md }}>
+        <AiBadge size={64} />
+        <AppText variant="title" style={{ textAlign: 'center', fontSize: 22, lineHeight: 28 }}>
+          {t('app.aiWelcome')}
+        </AppText>
+        <AppText variant="small" tone="muted" style={{ textAlign: 'center', maxWidth: 320 }}>
+          {t('analysis.chatHint')}
+        </AppText>
+      </View>
+      <View style={{ gap: space.sm }}>
+        {suggestions.map((text) => (
+          <Pressable
+            key={text}
+            accessibilityRole="button"
+            onPress={() => onPick(text)}
+            style={({ pressed }) => ({
+              minHeight: 52,
+              paddingHorizontal: space.lg,
+              borderRadius: radius.control + 4,
+              backgroundColor: pressed ? colors.borderStrong : colors.surfaceElevated,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: space.sm,
+            })}>
+            <MaterialCommunityIcons name="star-four-points" size={15} color={colors.accent} />
+            <AppText variant="small" style={{ flex: 1, fontFamily: fontFamily.semibold }}>
+              {text}
+            </AppText>
+            <MaterialCommunityIcons name="arrow-top-right" size={17} color={colors.textMuted} />
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
 }

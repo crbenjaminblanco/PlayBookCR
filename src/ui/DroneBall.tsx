@@ -29,7 +29,7 @@ function dot(index: number, time: number) {
   };
 }
 
-function paint(ctx: CanvasRenderingContext2D, width: number, height: number, time: number, color: string) {
+function paint(ctx: CanvasRenderingContext2D, width: number, height: number, time: number, color: string, accent?: string) {
   ctx.clearRect(0, 0, width, height);
   const scale = Math.min(width, height) * 0.42;
   const xStretch = width > height ? 2.35 : 1.7;
@@ -38,7 +38,7 @@ function paint(ctx: CanvasRenderingContext2D, width: number, height: number, tim
   for (let index = 0; index < COUNT; index += 1) {
     const point = dot(index, time);
     ctx.beginPath();
-    ctx.fillStyle = color;
+    ctx.fillStyle = accent && index % 7 === 0 ? accent : color;
     ctx.globalAlpha = point.opacity;
     ctx.arc(cx + point.x * scale * xStretch, cy + point.y * scale * 0.85, point.size, 0, Math.PI * 2);
     ctx.fill();
@@ -46,11 +46,15 @@ function paint(ctx: CanvasRenderingContext2D, width: number, height: number, tim
   ctx.globalAlpha = 1;
 }
 
-export function DroneBall({ height }: { height: number }) {
+/**
+ * Enjambre de drones que forma un balón y gira. Solo web (canvas); en nativo deja el espacio vacío.
+ * `color` es el tono de los drones; `accent` tiñe uno de cada siete.
+ */
+export function DroneBall({ height, color: ink, accent }: { height: number | '100%'; color?: string; accent?: string }) {
   const { colors } = useAppTheme();
   const reduced = useReducedMotion();
   const host = useRef<HTMLElement | null>(null);
-  const color = colors.text;
+  const color = ink ?? colors.text;
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -79,7 +83,7 @@ export function DroneBall({ height }: { height: number }) {
       if (ctx) {
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
         const frames = ((now - started) / 1000) * 60 * (width < 800 ? 1.75 : 1);
-        paint(ctx, width, nextHeight, reduced ? 30 : frames, color);
+        paint(ctx, width, nextHeight, reduced ? 30 : frames, color, accent);
       }
       if (!reduced) raf = requestAnimationFrame(draw);
     };
@@ -88,7 +92,7 @@ export function DroneBall({ height }: { height: number }) {
       cancelAnimationFrame(raf);
       canvas.remove();
     };
-  }, [color, reduced, height]);
+  }, [color, accent, reduced, height]);
 
   return <View ref={host as never} style={{ height, width: '100%' }} />;
 }

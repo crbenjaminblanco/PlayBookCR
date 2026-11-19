@@ -1,174 +1,125 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Platform, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { useTranslation } from 'react-i18next';
 
 import { leadingShare, teamFans, type ProvinceFanbase, type ProvinceId } from '@/src/data/provinces';
 import { teamById } from '@/src/data/teams';
 import { mapViewBox, provincePaths } from '@/src/data/mapPaths';
-import { mapTeamColor } from '@/src/ui/teamColor';
 import { useAppTheme } from '@/src/theme/ThemeProvider';
-import { hitSize, radius, space } from '@/src/theme/tokens';
-import { ShareList } from '@/src/ui/ShareList';
-import { AppText } from '@/src/ui/Text';
+import { Helmet } from '@/src/ui/Helmet';
 
-type Measurable = {
-  measureInWindow: (callback: (x: number, y: number, width: number, height: number) => void) => void;
-};
-
+/**
+ * Punto más interior de cada provincia (polo de inaccesibilidad de su contorno principal),
+ * en coordenadas del viewBox. Ahí va la insignia, lejos de los bordes.
+ */
 const anchors: Record<ProvinceId, { x: number; y: number }> = {
-  Guanacaste: { x: 48, y: 78 },
-  Alajuela: { x: 128, y: 72 },
-  Heredia: { x: 214, y: 92 },
-  Limón: { x: 292, y: 150 },
-  Cartago: { x: 232, y: 156 },
-  'San José': { x: 188, y: 168 },
-  Puntarenas: { x: 168, y: 230 },
+  Alajuela: { x: 158, y: 76 },
+  Cartago: { x: 237, y: 154 },
+  Guanacaste: { x: 50, y: 109 },
+  Heredia: { x: 205, y: 82 },
+  Limón: { x: 288, y: 168 },
+  Puntarenas: { x: 279, y: 232 },
+  'San José': { x: 239, y: 193 },
 };
+
+function channel(hex: string, index: number) {
+  return parseInt(hex.slice(1 + index * 2, 3 + index * 2), 16);
+}
+
+/** Mezcla dos colores hex: t = 0 da el primero, t = 1 el segundo. */
+export function mixColor(from: string, to: string, t: number) {
+  const mix = (index: number) => Math.round(channel(from, index) + (channel(to, index) - channel(from, index)) * t);
+  return `#${[0, 1, 2].map((index) => mix(index).toString(16).padStart(2, '0')).join('')}`;
+}
 
 type Props = {
   provinces: ProvinceFanbase[];
   selectedId: ProvinceId | null;
-  openId: ProvinceId | null;
-  onOpen: (id: ProvinceId) => void;
-  onClose: () => void;
   onSelect: (id: ProvinceId) => void;
   width: number;
-  favoriteId?: string | null;
+  /** Con equipo, la intensidad es la afición de ese equipo; sin equipo, la afición total. */
   teamId?: string | null;
+  /** Provincia bajo el cursor. No cambia la selección: solo la resalta. */
+  hoveredId?: ProvinceId | null;
+  onHover?: (id: ProvinceId | null) => void;
 };
 
-export function CostaRicaMap({
-  provinces,
-  selectedId,
-  openId,
-  onOpen,
-  onClose,
-  onSelect,
-  width,
-  favoriteId,
-  teamId = null,
-}: Props) {
-  const { t } = useTranslation();
-  const { colors, name } = useAppTheme();
+/**
+ * Mapa de intensidad: cada provincia en la escala cobalto de la app según su afición,
+ * con la insignia del equipo líder (o del equipo filtrado) encima para leerlo sin leyenda de colores.
+ */
+export function CostaRicaMap({ provinces, selectedId, onSelect, width, teamId = null, hoveredId = null, onHover }: Props) {
+  const { colors } = useAppTheme();
   const height = width * (mapViewBox.height / mapViewBox.width);
-  const { width: screenW, height: screenH } = useWindowDimensions();
-  const hostRef = useRef<Measurable | null>(null);
-  const [origin, setOrigin] = useState({ x: 16, y: 120, w: width, h: height });
-
-  const byId = useMemo(() => new Map(provinces.map((province) => [province.id, province])), [provinces]);
+  const byId = new Map(provinces.map((province) => [province.id, province]));
   const filterTeam = teamById(teamId);
-  const filterColor = filterTeam ? mapTeamColor(filterTeam.color, name) : null;
-  const peak = useMemo(() => {
-    if (!teamId) return 1;
-    return Math.max(...provinces.map((province) => teamFans(province, teamId)), 1);
-  }, [provinces, teamId]);
-  const opened = openId ? byId.get(openId) : undefined;
-  const tip = openId ? anchors[openId] : null;
-  const narrow = screenW < 720;
-  const panelWidth = narrow ? Math.min(420, screenW - 32) : Math.min(280, Math.max(220, origin.w - 16));
-  const panelMaxHeight = Math.max(220, Math.min(420, screenH - 140));
-  const anchorX = tip ? origin.x + (tip.x / mapViewBox.width) * origin.w : origin.x;
-  const anchorY = tip ? origin.y + (tip.y / mapViewBox.height) * origin.h : origin.y;
-  const panelLeft = narrow
-    ? Math.max(16, (screenW - panelWidth) / 2)
-    : Math.max(16, Math.min(anchorX + 16, screenW - panelWidth - 16));
-  const panelTop = narrow
-    ? Math.max(88, Math.min(origin.y + 24, screenH - panelMaxHeight - 16))
-    : Math.max(88, Math.min(anchorY - 12, screenH - panelMaxHeight - 16));
+  const values = provinces.map((province) => teamFans(province, teamId));
+  const peak = Math.max(...values, 1);
+  const floor = Math.min(...values);
+  const scale = width / mapViewBox.width;
+  const marker = width < 340 ? 24 : 28;
 
-  useEffect(() => {
-    if (!openId) return;
-    hostRef.current?.measureInWindow((x, y, w, h) => setOrigin({ x, y, w, h }));
-  }, [openId, width, height, screenW, screenH]);
+  // Resumen en texto del mapa: lo que lee un lector de pantalla en lugar de los colores.
+  const summary = provinces
+    .map((province) => {
+      const leader = teamById(leadingShare(province).teamId);
+      return `${province.id}: ${teamFans(province, teamId)}${filterTeam ? '' : leader ? `, ${leader.name}` : ''}`;
+    })
+    .join('; ');
 
   return (
     <View
-      ref={(node) => {
-        hostRef.current = node as Measurable | null;
-      }}
-      onLayout={() => {
-        hostRef.current?.measureInWindow((x, y, w, h) => setOrigin({ x, y, w, h }));
-      }}
-      style={{ width, height, position: 'relative', zIndex: 22, cursor: Platform.OS === 'web' ? 'pointer' : undefined }}>
+      style={{ width, height }}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={summary}
+      {...(Platform.OS === 'web' ? ({ onMouseLeave: () => onHover?.(null) } as object) : {})}>
       <Svg width={width} height={height} viewBox={`0 0 ${mapViewBox.width} ${mapViewBox.height}`}>
         {provincePaths.map((shape) => {
           const province = byId.get(shape.id);
-          const leader = province ? teamById(leadingShare(province).teamId) : undefined;
-          const fans = province ? teamFans(province, teamId ?? null) : 0;
-          const fill = filterColor ?? (leader ? mapTeamColor(leader.color, name) : name === 'dark' ? '#2A2A2A' : '#C8C4BC');
-          const fillOpacity = filterColor ? (fans === 0 ? 0.35 : 0.62 + 0.38 * (fans / peak)) : 1;
-          const active = shape.id === openId || shape.id === selectedId;
-          const handlers =
-            Platform.OS === 'web'
-              ? {
-                  onMouseEnter: () => onOpen(shape.id),
-                  onClick: () => {
-                    onOpen(shape.id);
-                    onSelect(shape.id);
-                  },
-                }
-              : {
-                  onPress: () => {
-                    onOpen(shape.id);
-                    onSelect(shape.id);
-                  },
-                };
+          const fans = province ? teamFans(province, teamId) : 0;
+          // Escala relativa entre la provincia con menos y la con más, para que se lean las diferencias.
+          const level = peak === floor ? 1 : (fans - floor) / (peak - floor);
+          const active = shape.id === selectedId;
+          const hot = shape.id === hoveredId;
+          const select = () => onSelect(shape.id);
           return (
             <Path
               key={shape.id}
               d={shape.d}
-              fill={fill}
-              fillOpacity={fillOpacity}
-              stroke={active ? colors.text : name === 'dark' ? '#050505' : '#F4F1EA'}
-              strokeWidth={active ? 2.8 : 2.2}
+              fill={mixColor(colors.mapLow, colors.mapHigh, hot || active ? Math.min(1, 0.42 + level * 0.58) : 0.18 + level * 0.82)}
+              stroke={active ? colors.text : hot ? colors.accent : colors.surface}
+              strokeWidth={active ? 3.2 : hot ? 2.6 : 1.6}
+              strokeLinejoin="round"
               accessibilityLabel={shape.id}
-              {...handlers}
+              {...(Platform.OS === 'web'
+                ? {
+                    onClick: select,
+                    onMouseEnter: () => onHover?.(shape.id),
+                    style: { cursor: 'pointer', transition: 'fill 180ms ease-out, stroke 180ms ease-out, stroke-width 180ms ease-out' },
+                  }
+                : { onPress: select })}
             />
           );
         })}
       </Svg>
-      {opened && tip ? (
-        <View
-          style={{
-            position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-            zIndex: 35,
-            left: Platform.OS === 'web' ? panelLeft : 8,
-            top: Platform.OS === 'web' ? panelTop : 8,
-            width: Platform.OS === 'web' ? panelWidth : width - 16,
-            maxHeight: panelMaxHeight,
-            backgroundColor: name === 'dark' ? '#111111' : '#FFFFFF',
-            borderRadius: radius.card,
-            borderWidth: 1,
-            borderColor: colors.borderStrong,
-            padding: space.lg,
-            gap: space.sm,
-            boxShadow: '0 16px 40px rgba(0,0,0,0.35)',
-          }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm }}>
-            <AppText variant="heading" style={{ flex: 1 }}>
-              {opened.id}
-            </AppText>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('home.close')}
-              onPress={onClose}
-              style={{
-                minWidth: hitSize,
-                minHeight: hitSize,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-              <AppText variant="heading" tone="muted">
-                ×
-              </AppText>
-            </Pressable>
+      {provincePaths.map((shape) => {
+        const province = byId.get(shape.id);
+        if (!province) return null;
+        const team = filterTeam ?? teamById(leadingShare(province).teamId);
+        if (!team) return null;
+        const point = anchors[shape.id];
+        const active = shape.id === selectedId;
+        const hot = shape.id === hoveredId;
+        const size = active ? marker + 8 : hot ? marker + 4 : marker;
+        return (
+          <View
+            key={shape.id}
+            pointerEvents="none"
+            style={{ position: 'absolute', left: point.x * scale - size / 2, top: point.y * scale - size / 2 }}>
+            <Helmet team={team} size={size} ring={active ? colors.text : hot ? colors.accent : colors.surface} />
           </View>
-          <ScrollView style={{ maxHeight: panelMaxHeight - 72 }} keyboardShouldPersistTaps="handled">
-            <ShareList key={opened.id} shares={opened.shares} favoriteId={favoriteId} compact />
-          </ScrollView>
-        </View>
-      ) : null}
+        );
+      })}
     </View>
   );
 }

@@ -1,10 +1,10 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import { Image, Platform, ScrollView, View, type ImageSourcePropType, type ScrollViewInstance, type ViewProps } from 'react-native';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { Platform, ScrollView, View, type ScrollViewInstance, type ViewProps } from 'react-native';
 import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/src/theme/ThemeProvider';
-import { space } from '@/src/theme/tokens';
+import { dockHeight, space } from '@/src/theme/tokens';
 import { useHomeScroll } from '@/src/ui/homeScroll';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
 
@@ -12,79 +12,65 @@ type Props = ViewProps & {
   scroll?: boolean;
   footer?: ReactNode;
   center?: boolean;
-  backdrop?: ImageSourcePropType;
+  /** Pantallas fuera de las pestañas (bienvenida, equipo) no reservan espacio para la barra. */
+  tabs?: boolean;
 };
 
-export function Screen({ children, scroll = true, footer, center = false, backdrop, style }: Props) {
-  const { colors, name } = useAppTheme();
-  const { contentMax, pad } = useBreakpoint();
+export function Screen({ children, scroll = true, footer, center = false, tabs = true, style }: Props) {
+  const { colors } = useAppTheme();
+  const { contentMax, pad, wide } = useBreakpoint();
   const insets = useSafeAreaInsets();
   const { reportScroll, registerScroller } = useHomeScroll();
   const pathname = usePathname();
   const scroller = useRef<ScrollViewInstance | null>(null);
 
-  function toTop() {
+  const toTop = useCallback(() => {
     scroller.current?.scrollTo({ y: 0, animated: false });
     reportScroll(0);
-    if (Platform.OS === 'web') {
-      window.scrollTo(0, 0);
-      document.querySelectorAll('div').forEach((node) => {
-        if (node.scrollTop > 0) node.scrollTop = 0;
-      });
-    }
-  }
+    if (Platform.OS === 'web') window.scrollTo(0, 0);
+  }, [reportScroll]);
 
   useEffect(() => {
     registerScroller(toTop);
     return () => registerScroller(null);
-  });
+  }, [registerScroller, toTop]);
 
   useEffect(() => {
     toTop();
-  }, [pathname]);
+  }, [pathname, toTop]);
+
+  const topPad = wide ? space.xxl : insets.top + space.md;
+  const bottomPad = footer ? space.xl : insets.bottom + space.xxl + (wide || !tabs ? 0 : dockHeight);
 
   const body = (
-    <View style={{ width: '100%', maxWidth: contentMax, alignSelf: 'center', paddingHorizontal: pad, gap: space.xxl }}>
+    <View style={{ width: '100%', maxWidth: contentMax, alignSelf: 'center', paddingHorizontal: pad, gap: space.xl }}>
       {children}
     </View>
   );
 
   return (
     <View style={[{ flex: 1, backgroundColor: colors.bg }, style]}>
-      {backdrop ? <Image source={backdrop} resizeMode="cover" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} /> : null}
-      {backdrop ? (
-        <View
-          pointerEvents="none"
-          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: name === 'dark' ? 'rgba(12,11,9,0.88)' : 'rgba(246,241,231,0.9)' }}
-        />
-      ) : null}
       {scroll ? (
         <ScrollView
           ref={scroller as never}
           style={{ flex: 1 }}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
           onScroll={(event) => reportScroll(event.nativeEvent.contentOffset.y)}
           scrollEventThrottle={16}
           contentContainerStyle={{
             flexGrow: 1,
             justifyContent: center ? 'center' : 'flex-start',
-            paddingTop: space.md,
-            paddingBottom: footer ? space.xl : insets.bottom + space.xxxl,
+            paddingTop: topPad,
+            paddingBottom: bottomPad,
           }}>
           {body}
         </ScrollView>
       ) : (
-        <View style={{ flex: 1, paddingTop: space.md }}>{body}</View>
+        <View style={{ flex: 1, paddingTop: topPad }}>{body}</View>
       )}
       {footer ? (
-        <View
-          style={{
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
-            backgroundColor: colors.bg,
-            paddingTop: space.md,
-            paddingBottom: insets.bottom + space.md,
-          }}>
+        <View style={{ backgroundColor: colors.bg, paddingTop: space.md, paddingBottom: insets.bottom + space.lg }}>
           <View style={{ width: '100%', maxWidth: contentMax, alignSelf: 'center', paddingHorizontal: pad }}>{footer}</View>
         </View>
       ) : null}

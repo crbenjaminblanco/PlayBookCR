@@ -38,7 +38,7 @@ function deviceLanguage(): Language {
   return i18n.language === 'en' ? 'en' : 'es';
 }
 
-const defaultPrefs: Prefs = { language: 'es', theme: 'dark' };
+const defaultPrefs: Prefs = { language: 'es', theme: 'light' };
 
 async function readJson<T>(key: string): Promise<T | null> {
   const raw = await AsyncStorage.getItem(key);
@@ -62,7 +62,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           readJson<Prefs>(PREFS_KEY),
         ]);
         if (cancelled) return;
-        const nextPrefs = storedPrefs ?? { language: deviceLanguage(), theme: 'dark' as const };
+        const nextPrefs = storedPrefs ?? { language: deviceLanguage(), theme: 'light' as const };
         prefsRef.current = nextPrefs;
         authRef.current = storedAuth;
         setPrefs(nextPrefs);

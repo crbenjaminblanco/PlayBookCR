@@ -1,21 +1,27 @@
 import { Text, View } from 'react-native';
 
 import type { Team } from '@/src/data/teams';
+import { useAppTheme } from '@/src/theme/ThemeProvider';
 import { fontFamily } from '@/src/theme/tokens';
-import { readableTeamColor } from '@/src/ui/teamColor';
 
 export function InitialsBadge({
   label,
   color,
+  textColor = '#FFFFFF',
   size = 40,
+  ring,
   accessibilityLabel,
 }: {
   label: string;
   color: string;
+  textColor?: string;
   size?: number;
+  /** Color del anillo para separar insignias superpuestas. */
+  ring?: string;
   accessibilityLabel?: string;
 }) {
-  const fontSize = Math.round(size * (label.length > 2 ? 0.26 : 0.32));
+  const { colors, name } = useAppTheme();
+  const fontSize = Math.round(size * (label.length > 2 ? 0.28 : 0.34));
 
   return (
     <View
@@ -24,18 +30,19 @@ export function InitialsBadge({
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: `${color}33`,
-        borderWidth: 1,
-        borderColor: `${color}55`,
+        backgroundColor: color,
+        borderWidth: ring ? 2 : name === 'dark' ? 1 : 0,
+        borderColor: ring ?? colors.borderStrong,
         alignItems: 'center',
         justifyContent: 'center',
       }}>
       <Text
         style={{
-          color,
+          color: textColor,
           fontFamily: fontFamily.bold,
           fontSize,
-          lineHeight: fontSize,
+          lineHeight: fontSize + 2,
+          letterSpacing: -0.2,
           textAlign: 'center',
         }}>
         {label}
@@ -44,12 +51,14 @@ export function InitialsBadge({
   );
 }
 
-export function Helmet({ team, size = 40 }: { team: Team; size?: number }) {
+export function Helmet({ team, size = 40, ring }: { team: Team; size?: number; ring?: string }) {
   return (
     <InitialsBadge
       label={team.abbr}
-      color={readableTeamColor(team.color)}
+      color={team.color}
+      textColor={team.onColor}
       size={size}
+      ring={ring}
       accessibilityLabel={`${team.city} ${team.name}`}
     />
   );

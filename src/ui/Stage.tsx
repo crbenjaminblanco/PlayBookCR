@@ -14,16 +14,11 @@ type StageProps = {
   children?: ReactNode;
 };
 
-export function Stage({ kicker, title, children }: StageProps) {
+export function Stage({ title, children }: StageProps) {
   return (
     <View style={{ gap: space.lg, paddingBottom: space.xl }}>
       <View style={{ gap: space.sm, maxWidth: 920 }}>
-        {kicker ? (
-          <AppText variant="kicker" tone="muted">
-            {kicker}
-          </AppText>
-        ) : null}
-        <AppText variant="title">{title}</AppText>
+        <AppText variant="title" accessibilityRole="header">{title}</AppText>
       </View>
       {children}
     </View>

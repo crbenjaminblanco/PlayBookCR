@@ -17,7 +17,7 @@ export default function Root({ children }: { children: ReactNode }) {
           name="description"
           content="Lectura de la jornada de la NFL con IA, hecha en Costa Rica. Vea la afición por provincia y el análisis de la semana."
         />
-        <meta name="theme-color" content="#030712" />
+        <meta name="theme-color" content="#F2F4F8" />
         <meta property="og:title" content="PlayBookCR · La jornada de la NFL leída con IA" />
         <meta
           property="og:description"
@@ -25,7 +25,7 @@ export default function Root({ children }: { children: ReactNode }) {
         />
         <meta property="og:locale" content="es_CR" />
         <meta property="og:type" content="website" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9.5' fill='%230B1324'/%3E%3Cpath d='M11 24.5V8.6H17.4A5.6 5.6 0 0 1 17.4 19.8H11' fill='none' stroke='%23FFFFFF' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='17' cy='14.2' r='2.3' fill='%234D74FF'/%3E%3C/svg%3E" />
 
         {/*
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native.
@@ -44,5 +44,35 @@ export default function Root({ children }: { children: ReactNode }) {
 
 const responsiveBackground = `
 body {
-  background-color: #0B1220;
+  background-color: #F2F4F8;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+
+}
+::selection {
+  background: rgba(35, 80, 245, 0.22);
+  color: inherit;
+}
+input, textarea {
+  caret-color: #2350F5;
+}
+:focus-visible {
+  outline: 2px solid #2350F5;
+  outline-offset: 3px;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(35, 80, 245, 0.22) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(11, 19, 36, 0.18);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }`;

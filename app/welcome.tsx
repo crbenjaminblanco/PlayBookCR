@@ -4,11 +4,12 @@ import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { useSession } from '@/src/session/SessionProvider';
-import { useAppTheme } from '@/src/theme/ThemeProvider';
-import { fontFamily, space } from '@/src/theme/tokens';
+import { space } from '@/src/theme/tokens';
+import { BrandMark } from '@/src/ui/Brand';
 import { Button } from '@/src/ui/Button';
+import { Card } from '@/src/ui/Card';
+import { IconTile, type IconName } from '@/src/ui/Kit';
 import { Screen } from '@/src/ui/Screen';
-import { Stage } from '@/src/ui/Stage';
 import { AppText } from '@/src/ui/Text';
 import { TextField } from '@/src/ui/TextField';
 import { useBreakpoint } from '@/src/ui/useBreakpoint';
@@ -21,7 +22,6 @@ export default function WelcomeScreen() {
   const { t } = useTranslation();
   const { auth, signInGuest, signInAccount } = useSession();
   const { wide } = useBreakpoint();
-  const { colors } = useAppTheme();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
 
@@ -46,48 +46,54 @@ export default function WelcomeScreen() {
     router.replace('/team');
   }
 
-  const story = (
-    <Stage kicker={t('welcome.kicker')} title={t('welcome.title')} fill={false}>
-      <AppText variant="body" tone="muted">
-        {t('welcome.subtitle')}
-      </AppText>
-      <View style={{ gap: space.md }}>
-        {[t('welcome.pointMap'), t('welcome.pointAdvice'), t('welcome.pointStore')].map((point) => (
-          <View key={point} style={{ flexDirection: 'row', gap: space.md, alignItems: 'center' }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent }} />
-            <AppText variant="body">{point}</AppText>
-          </View>
-        ))}
-      </View>
-    </Stage>
-  );
-
-  const form = (
-    <View style={{ flex: wide ? 0.8 : undefined, gap: space.lg, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.xl, justifyContent: 'flex-end' }}>
-      <TextField
-        label={t('welcome.email')}
-        value={email}
-        onChangeText={(value) => {
-          setEmail(value);
-          if (error) setError('');
-        }}
-        error={error}
-        keyboardType="email-address"
-        placeholder="ana@correo.com"
-      />
-      <Button label={t('welcome.signIn')} onPress={enter} />
-      <Button label={t('welcome.guest')} variant="secondary" onPress={guest} />
-      <AppText variant="small" tone="muted" style={{ fontFamily: fontFamily.regular }}>
-        {t('welcome.demoHint')}
-      </AppText>
-    </View>
-  );
+  const points: { icon: IconName; label: string }[] = [
+    { icon: 'map-marker-radius-outline', label: t('welcome.pointMap') },
+    { icon: 'chart-box-outline', label: t('welcome.pointAdvice') },
+    { icon: 'shopping-outline', label: t('welcome.pointStore') },
+  ];
 
   return (
-    <Screen center>
-      <View style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? 48 : 28, alignItems: 'stretch' }}>
-        {story}
-        {form}
+    <Screen center tabs={false}>
+      <View style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? space.xxxl : space.xl, alignItems: wide ? 'center' : 'stretch' }}>
+        <View style={{ flex: wide ? 1 : undefined, gap: space.xl }}>
+          <BrandMark size={56} />
+          <View style={{ gap: space.md }}>
+            <AppText variant="display" accessibilityRole="header">
+              {t('welcome.title')}
+            </AppText>
+            <AppText variant="body" tone="muted">
+              {t('welcome.subtitle')}
+            </AppText>
+          </View>
+          <View style={{ gap: space.md }}>
+            {points.map((point) => (
+              <View key={point.label} style={{ flexDirection: 'row', gap: space.md, alignItems: 'center' }}>
+                <IconTile icon={point.icon} />
+                <AppText variant="label" style={{ flex: 1 }}>
+                  {point.label}
+                </AppText>
+              </View>
+            ))}
+          </View>
+        </View>
+        <Card style={{ flex: wide ? 1 : undefined, gap: space.md, padding: space.xl }}>
+          <TextField
+            label={t('welcome.email')}
+            value={email}
+            onChangeText={(value) => {
+              setEmail(value);
+              if (error) setError('');
+            }}
+            error={error}
+            keyboardType="email-address"
+            placeholder="ana@correo.com"
+          />
+          <Button label={t('welcome.signIn')} block onPress={enter} />
+          <Button label={t('welcome.guest')} variant="secondary" block onPress={guest} />
+          <AppText variant="caption" tone="muted" style={{ textAlign: 'center', fontSize: 13, lineHeight: 18 }}>
+            {t('welcome.demoHint')}
+          </AppText>
+        </Card>
       </View>
     </Screen>
   );

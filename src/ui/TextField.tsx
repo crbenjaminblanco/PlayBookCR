@@ -1,7 +1,7 @@
 import { HelperText, TextInput } from 'react-native-paper';
 
 import { useAppTheme } from '@/src/theme/ThemeProvider';
-import { fontFamily } from '@/src/theme/tokens';
+import { fontFamily, radius } from '@/src/theme/tokens';
 
 type Props = {
   label: string;
@@ -27,9 +27,10 @@ export function TextField({ label, value, onChangeText, error, placeholder, keyb
         autoCorrect={false}
         error={Boolean(error)}
         outlineColor={colors.borderStrong}
+        outlineStyle={{ borderRadius: radius.control }}
         activeOutlineColor={colors.accent}
         textColor={colors.text}
-        style={{ backgroundColor: colors.surface, fontFamily: fontFamily.regular }}
+        style={{ backgroundColor: colors.surface, fontFamily: fontFamily.regular, borderRadius: radius.control }}
       />
       {error ? <HelperText type="error">{error}</HelperText> : null}
     </>

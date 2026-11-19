@@ -12,9 +12,9 @@ export function useBreakpoint() {
     wide,
     regular,
     compact: !regular,
-    contentMax: wide ? layout.wideMax : width,
-    pad: wide ? 48 : regular ? 28 : 16,
-    teamColumns: wide ? 4 : regular ? 3 : 2,
-    storeColumns: wide ? 3 : regular ? 2 : 1,
+    contentMax: wide ? layout.wideMax : layout.appMax,
+    pad: wide ? 40 : 20,
+    teamColumns: wide ? 4 : 3,
+    storeColumns: wide ? 4 : 2,
   };
 }

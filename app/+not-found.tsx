@@ -1,9 +1,9 @@
-import { Link, Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import { Button } from '@/src/ui/Button';
+import { ScreenHeader } from '@/src/ui/Kit';
 import { Screen } from '@/src/ui/Screen';
-import { Stage } from '@/src/ui/Stage';
-import { AppText } from '@/src/ui/Text';
 
 export default function NotFoundScreen() {
   const { t } = useTranslation();
@@ -11,12 +11,8 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: t('common.appName'), headerShown: false }} />
       <Screen>
-        <Stage title={t('notFound.title')} fill={false} />
-        <Link href="/">
-          <AppText variant="body" tone="accent">
-            {t('notFound.action')}
-          </AppText>
-        </Link>
+        <ScreenHeader title={t('notFound.title')} />
+        <Button label={t('notFound.action')} onPress={() => router.replace('/')} />
       </Screen>
     </>
   );
